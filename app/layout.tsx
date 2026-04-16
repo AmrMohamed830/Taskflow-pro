@@ -4,12 +4,13 @@ import { Cairo, Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import ThemeProvider from "@/components/providers/theme-provider";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 const cairo = Cairo({
     subsets: ["arabic", "latin"],
     weight: ["400", "500", "600", "700"],
     display: "swap",
+    variable: "--font-cairo",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export default function RootLayout({
     return (
         <html
             lang="en"
-            className={cn(cairo.className, "font-sans", geist.variable)}
+            className={cn(cairo.variable, geist.variable, "font-sans")}
             suppressHydrationWarning
         >
             <body>

@@ -17,9 +17,9 @@ const Navbar = () => {
                 <div className="hidden sm:flex items-center gap-3">
                     <ThemeToggle />
                     <Button className="px-6 py-5  bg-transparent text-accent-foreground hover:bg-brand transition duration-300">
-                        sign in
+                        Sign in
                     </Button>
-                    <Button className="bg-brand px-6 py-5 text-black hover:bg-[#00bc83] transition duration-300">
+                    <Button className="bg-brand px-6 py-5 text-brand-foreground hover:bg-[#00bc83] transition duration-300">
                         Get Started
                     </Button>
                 </div>
@@ -31,7 +31,7 @@ const Navbar = () => {
                     </button>
                 </div>
                 {open && (
-                    <div className="absolute top-[72px] right-0 w-[200px] bg-background p-4 flex flex-col gap-3 sm:hidden">
+                    <div className="absolute top-[72px] right-0 w-[200px] border-b-2 border-l-2 z-50 shadow-lg bg-background p-4 flex flex-col gap-3 sm:hidden">
                         <Button className=" bg-transparent text-accent-foreground hover:bg-brand transition duration-300">
                             Sign in
                         </Button>

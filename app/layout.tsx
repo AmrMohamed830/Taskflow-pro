@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Cairo, Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { ThemeProvider } from "next-themes";
+import ThemeProvider from "@/components/providers/theme-provider";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -29,13 +29,7 @@ export default function RootLayout({
             suppressHydrationWarning
         >
             <body>
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                >
-                    {children}
-                </ThemeProvider>
+                <ThemeProvider>{children}</ThemeProvider>
             </body>
         </html>
     );

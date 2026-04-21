@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-gray-brand:var(--gray-brand);
     --color-secondary-brand: var(--secondary-brand);
   --color-brand-foreground: var(--brand-foreground);
     --color-brand: var(--brand);
@@ -51,6 +52,7 @@
 }
 
 :root {
+  --gray-brand:#8f8f8f;
     --secondary-brand: #ffffff;
     --brand-foreground: oklch(0 0 0);
     --brand: rgb(0, 208, 145);

@@ -2,7 +2,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
 const Hero = () => {
     return (
-        <section className="py-31 border-b-1">
+        <section className="py-30 border-b-1">
             <div className="max-w-7xl mx-auto px-4 flex justify-center items-center ">
                 <div className="max-w-2xl flex flex-col gap-6 items-center">
                     <div className="flex gap-3 bg-secondary-brand text-brand px-4 py-1 rounded-2xl">
@@ -15,7 +15,7 @@ const Hero = () => {
                             amplify your productivity
                         </span>
                     </h1>
-                    <p className="text-center text-[#8f8f8f] text-[19px]">
+                    <p className="text-center text-gray-brand text-[19px]">
                         TaskFlow is the modern task management platform that
                         helps teams stay organized, focused, and productive.
                         Visualize your workflow with our intuitive Kanban board.

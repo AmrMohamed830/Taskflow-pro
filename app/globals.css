@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --color-secondary-brand: var(--secondary-brand);
   --color-brand-foreground: var(--brand-foreground);
     --color-brand: var(--brand);
     --font-heading: var(--font-cairo), var(--font-geist), sans-serif;
@@ -50,6 +51,7 @@
 }
 
 :root {
+    --secondary-brand: #ffffff;
     --brand-foreground: oklch(0 0 0);
     --brand: rgb(0, 208, 145);
     --background: oklch(1 0 0);
@@ -87,6 +89,7 @@
 }
 
 .dark {
+    --secondary-brand: #041b18;
     --brand-foreground: oklch(1 0 0);
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);

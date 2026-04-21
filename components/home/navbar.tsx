@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 const Navbar = () => {
     const [open, setOpen] = useState(false);
     return (
-        <div className=" border-b-2 relative">
+        <nav className=" border-b-1 relative">
             <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-[72px]  ">
                 <div className="flex items-center gap-3 ">
                     <SquareCheckBig className="w-5 h-5 text-brand" />
@@ -19,7 +19,7 @@ const Navbar = () => {
                     <Button className="px-6 py-5  bg-transparent text-accent-foreground hover:bg-brand transition duration-300">
                         Sign in
                     </Button>
-                    <Button className="bg-brand px-6 py-5 text-brand-foreground hover:bg-[#00bc83] transition duration-300">
+                    <Button variant="taskflow" size="lg" >
                         Get Started
                     </Button>
                 </div>
@@ -41,7 +41,7 @@ const Navbar = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </nav>
     );
 };
 

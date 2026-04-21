@@ -10,6 +10,7 @@ export default function ThemeToggle() {
 
     useEffect(() => {
         setMounted(true);
+        setTheme("dark");
     }, []);
 
     if (!mounted) {

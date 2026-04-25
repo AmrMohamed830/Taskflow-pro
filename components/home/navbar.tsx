@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SquareCheckBig, Menu } from "lucide-react";
 import ThemeToggle from "../global/theme";
 import { Button } from "../ui/button";
+import Link from "next/link";
 
 const Navbar = () => {
     const [open, setOpen] = useState(false);
@@ -16,12 +17,15 @@ const Navbar = () => {
 
                 <div className="hidden sm:flex items-center gap-3">
                     <ThemeToggle />
+
                     <Button className="px-6 py-5  bg-transparent text-accent-foreground hover:bg-brand transition duration-300">
                         Sign in
                     </Button>
-                    <Button variant="taskflow" size="lg" >
-                        Get Started
-                    </Button>
+                    <Link href="/register">
+                        <Button variant="taskflow" size="lg">
+                            Get Started
+                        </Button>
+                    </Link>
                 </div>
 
                 <div className="sm:hidden flex items-center gap-3">

@@ -25,7 +25,7 @@ const Hero = () => {
                             Get Started
                             <ArrowRight />
                         </Button>
-                        <Button className="px-6 py-5  bg-transparent text-accent-foreground hover:bg-brand transition duration-300">
+                        <Button className="px-6 py-5  bg-secondary-brand text-accent-foreground hover:bg-brand transition duration-300">
                             Sign in
                         </Button>
                     </div>

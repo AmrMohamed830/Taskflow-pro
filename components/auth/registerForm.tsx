@@ -33,7 +33,7 @@ const RegisterForm = () => {
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="" className="font-bold">
-                            Full Name
+                            Email
                         </label>
                         <div className="relative bg-secondary-brand/70">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -46,7 +46,7 @@ const RegisterForm = () => {
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="" className="font-bold">
-                            Full Name
+                            Password
                         </label>
                         <div className="relative bg-secondary-brand/70">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -60,7 +60,7 @@ const RegisterForm = () => {
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="" className="font-bold">
-                            Full Name
+                            Confirm Password
                         </label>
                         <div className="relative bg-secondary-brand/70">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

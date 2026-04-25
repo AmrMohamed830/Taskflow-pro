@@ -1,9 +1,11 @@
-import React from 'react'
+import LoginForm from "@/components/auth/loginForm";
 
 const page = () => {
-  return (
-    <div>page</div>
-  )
-}
+    return (
+        <div>
+            <LoginForm />
+        </div>
+    );
+};
 
-export default page
+export default page;

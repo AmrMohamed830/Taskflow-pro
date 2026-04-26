@@ -1,5 +1,6 @@
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
+import Link from "next/link";
 const Hero = () => {
     return (
         <section className="py-30 border-b-1">
@@ -21,13 +22,21 @@ const Hero = () => {
                         Visualize your workflow with our intuitive Kanban board.
                     </p>
                     <div className="flex gap-3">
-                        <Button variant="taskflow" size="lg" className="gap-5">
-                            Get Started
-                            <ArrowRight />
-                        </Button>
-                        <Button className="px-6 py-5  bg-secondary-brand text-accent-foreground hover:bg-brand transition duration-300">
-                            Sign in
-                        </Button>
+                        <Link href="/register">
+                            <Button
+                                variant="taskflow"
+                                size="lg"
+                                className="gap-5"
+                            >
+                                Get Started
+                                <ArrowRight />
+                            </Button>
+                        </Link>
+                        <Link href="/login">
+                            <Button className="px-6 py-5  bg-secondary-brand text-accent-foreground hover:bg-brand transition duration-300">
+                                Sign in
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </div>

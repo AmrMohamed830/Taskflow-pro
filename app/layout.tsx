@@ -3,6 +3,7 @@ import "./globals.css";
 import { Cairo, Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import ThemeProvider from "@/components/providers/theme-provider";
+import Providers from "./providers";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
@@ -30,7 +31,9 @@ export default function RootLayout({
             suppressHydrationWarning
         >
             <body>
-                <ThemeProvider>{children}</ThemeProvider>
+                <Providers>
+                    <ThemeProvider>{children}</ThemeProvider>
+                </Providers>
             </body>
         </html>
     );

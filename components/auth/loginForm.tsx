@@ -71,7 +71,7 @@ const LoginForm = () => {
                     {/* Google */}
                     <button
                         type="button"
-                        onClick={() => signIn("google")}
+                        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image
@@ -87,7 +87,7 @@ const LoginForm = () => {
                     {/* GitHub */}
                     <button
                         type="button"
-                        onClick={() => signIn("github")}
+                        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image

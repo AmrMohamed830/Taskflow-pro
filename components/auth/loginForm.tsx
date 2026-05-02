@@ -32,12 +32,18 @@ const LoginForm = () => {
             });
 
             // Fetch full user data after login to get the image and other details
-            const userData = await getMe();
-            
+            const userData = (await getMe()) as {
+                data: {
+                    name: string;
+                    email: string;
+                    image?: string;
+                };
+            };
+
             setUser({
                 name: userData.data.name,
                 email: userData.data.email,
-                image: userData.data.image || "", 
+                image: userData.data.image || "",
             });
 
             console.log("Login Success");

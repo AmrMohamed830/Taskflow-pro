@@ -6,23 +6,40 @@ import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type z } from "zod";
 import { registerSchema } from "@/lib/validations/auth";
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+import type { RegisterFormData } from "@/lib/types/auth";
+import { registerUser } from "@/lib/api/auth";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const RegisterForm = () => {
+    const [apiError, setApiError] = useState("");
+    const router = useRouter();
     const {
         register,
         handleSubmit,
-        formState: { errors, isValid, isSubmitting, isDirty, isSubmitted },
+        formState: { errors, isSubmitting, isSubmitted },
     } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
         mode: "onChange",
         reValidateMode: "onBlur",
     });
-    const onSubmit = (data: RegisterFormData) => {
-        console.log(data);
+    const onSubmit = async (data: RegisterFormData) => {
+        try {
+            setApiError(""); // نمسح أي error قديم
+
+            const result = await registerUser(data);
+
+            console.log("Success:", result);
+
+            router.push("/dashboard");
+        } catch (error) {
+            if (error instanceof Error) {
+                setApiError(error.message);
+            } else {
+                setApiError("An unexpected error occurred.");
+            }
+        }
     };
     return (
         <div className="flex justify-center items-center min-h-screen px-4">
@@ -146,6 +163,7 @@ ${
                     <div>
                         <button
                             type="submit"
+                            disabled={isSubmitting}
                             // disabled={(!isValid && isDirty) || isSubmitting}
                             className="bg-brand w-full py-2 rounded text-background hover:bg-brand/90 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -153,6 +171,11 @@ ${
                         </button>
                     </div>
                 </form>
+                {apiError && (
+                    <p className="text-red-500 text-sm text-center">
+                        {apiError}
+                    </p>
+                )}
 
                 <div className="flex items-center gap-3 my-2">
                     <div className="flex-1 h-[1px] bg-gray-800" />
@@ -180,7 +203,7 @@ ${
 
                     <button
                         type="button"
-                        onClick={() => signIn("github")}
+                        onClick={() => signIn("github", { callbackUrl: "/" })}
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image

@@ -13,6 +13,22 @@ export const authOptions = {
             clientSecret: process.env.GITHUB_SECRET
         })
     ],
+    callbacks: {
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id;
+                token.image = user.image;
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            if (token) {
+                session.user.id = token.id;
+                session.user.image = token.image;
+            }
+            return session;
+        },
+    },
     secret: process.env.NEXTAUTH_SECRET,
 }
 

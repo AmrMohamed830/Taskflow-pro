@@ -1,15 +1,51 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { SquareCheckBig, Menu, LogOut } from "lucide-react";
 import ThemeToggle from "../global/theme";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/store/auth";
+import { getMe } from "@/lib/api/auth";
+import Cookies from "js-cookie";
 
 const Navbar = () => {
     const [open, setOpen] = useState(false);
+
+    const { user, setUser, logout } = useAuthStore();
     const { data: session, status } = useSession();
 
+    useEffect(() => {
+        if (session?.user) {
+            setUser({
+                name: session.user.name || "",
+                email: session.user.email || "",
+                image: session.user.image || "",
+            });
+        }
+    }, [session, setUser]);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const token = Cookies.get("token");
+            if (token && !user) {
+                try {
+                    const userData = await getMe();
+                    setUser({
+                        name: userData.data.name,
+                        email: userData.data.email,
+                        image: userData.data.image || "",
+                    });
+                } catch (error) {
+                    console.error("Failed to fetch user:", error);
+                }
+            }
+        };
+        fetchUser();
+    }, [user, setUser]);
+
+    const isLoggedIn = !!user;
     return (
         <nav className=" border-b-1 relative">
             <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-[72px]  ">
@@ -21,23 +57,27 @@ const Navbar = () => {
                 <div className="hidden sm:flex items-center gap-3">
                     <ThemeToggle />
 
-                    {status === "authenticated" ? (
+                    {isLoggedIn ? (
                         <div className="flex items-center gap-4">
-                            {session.user?.image ? (
+                            {user?.image ? (
                                 <img
-                                    src={session.user.image}
-                                    alt={session.user.name || "User"}
+                                    src={user.image}
+                                    alt={user.name || "User"}
                                     className="w-10 h-10 rounded-full border-2 border-brand"
                                 />
                             ) : (
                                 <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white font-bold">
-                                    {session.user?.name?.[0] || "U"}
+                                    {user?.name?.[0] || "U"}
                                 </div>
                             )}
+
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => signOut()}
+                                onClick={() => {
+                                    signOut(); // NextAuth
+                                    logout(); // Backend/Zustand
+                                }}
                                 className="text-muted-foreground hover:text-destructive"
                             >
                                 <LogOut className="w-5 h-5" />
@@ -65,24 +105,34 @@ const Navbar = () => {
                         <Menu />
                     </button>
                 </div>
+
                 {open && (
                     <div className="absolute top-[72px] right-0 w-[200px] border-b-2 border-l-2 z-50 shadow-lg bg-background p-4 flex flex-col gap-3 sm:hidden">
-                        {status === "authenticated" ? (
+                        {isLoggedIn ? (
                             <>
                                 <div className="flex items-center gap-2 px-2 py-2">
-                                    {session.user?.image && (
+                                    {user?.image ? (
                                         <img
-                                            src={session.user.image}
-                                            className="w-8 h-8 rounded-full"
-                                            alt=""
+                                            src={user.image}
+                                            className="w-8 h-8 rounded-full border-1 border-brand"
+                                            alt={user.name || "User"}
                                         />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold">
+                                            {user?.name?.[0] || "U"}
+                                        </div>
                                     )}
+
                                     <span className="text-sm font-medium truncate">
-                                        {session.user?.name}
+                                        {user?.name}
                                     </span>
                                 </div>
+
                                 <Button
-                                    onClick={() => signOut()}
+                                    onClick={() => {
+                                        signOut();
+                                        logout();
+                                    }}
                                     variant="destructive"
                                     className="w-full justify-start gap-2"
                                 >
@@ -112,4 +162,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

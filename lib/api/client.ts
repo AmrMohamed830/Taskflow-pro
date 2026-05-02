@@ -7,7 +7,7 @@ type FetchOptions = RequestInit & {
     params?: Record<string, string>;
 };
 
-async function apiRequest<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+async function apiRequest<T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const token = Cookies.get("token");
     
     // تجهيز الـ Headers
@@ -46,7 +46,7 @@ async function apiRequest<T>(endpoint: string, options: FetchOptions = {}): Prom
         }
 
         return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         throw error;
     }
 }
@@ -55,10 +55,10 @@ export const api = {
     get: <T>(endpoint: string, options?: FetchOptions) => 
         apiRequest<T>(endpoint, { ...options, method: "GET" }),
     
-    post: <T>(endpoint: string, body?: any, options?: FetchOptions) => 
+    post: <T>(endpoint: string, body?: unknown, options?: FetchOptions) => 
         apiRequest<T>(endpoint, { ...options, method: "POST", body: JSON.stringify(body) }),
     
-    put: <T>(endpoint: string, body?: any, options?: FetchOptions) => 
+    put: <T>(endpoint: string, body?: unknown, options?: FetchOptions) => 
         apiRequest<T>(endpoint, { ...options, method: "PUT", body: JSON.stringify(body) }),
     
     delete: <T>(endpoint: string, options?: FetchOptions) => 

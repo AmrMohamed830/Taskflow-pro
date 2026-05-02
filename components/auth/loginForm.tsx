@@ -16,12 +16,13 @@ const LoginForm = () => {
     const router = useRouter();
     const { setUser } = useAuthStore();
 
-
     const {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<LoginFormData>();
+    } = useForm<LoginFormData>({
+        mode: "onChange",
+    });
 
     const onSubmit = async (data: LoginFormData) => {
         try {
@@ -48,7 +49,6 @@ const LoginForm = () => {
 
             console.log("Login Success");
             router.push("/dashboard");
-
         } catch (error) {
             if (error instanceof Error) {
                 setApiError(error.message);

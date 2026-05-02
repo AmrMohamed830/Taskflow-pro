@@ -25,10 +25,11 @@ const Navbar = () => {
                 const userData = await getMe();
                 // التحقق من هيكل البيانات القادم من Strapi أو الـ API الخاص بك
                 const userProfile = userData?.data || userData;
-                
+
                 if (userProfile) {
                     setUser({
-                        name: userProfile.name || userProfile.username || "User",
+                        name:
+                            userProfile.name || userProfile.username || "User",
                         email: userProfile.email || "",
                         image: userProfile.image || userProfile.avatar || "",
                     });
@@ -52,8 +53,9 @@ const Navbar = () => {
                     image: session.user.image || "",
                 });
             }
-            setIsInitialLoading(false);
-        } 
+            // Use setTimeout to avoid "setState synchronously within an effect" warning
+            setTimeout(() => setIsInitialLoading(false), 0);
+        }
         // 2. التعامل مع الـ Token اليدوي (Email/Password)
         else if (status === "unauthenticated") {
             fetchUserData();
@@ -80,9 +82,14 @@ const Navbar = () => {
         <nav className="border-b relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-[72px]">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+                <Link
+                    href="/"
+                    className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+                >
                     <SquareCheckBig className="w-6 h-6 text-brand" />
-                    <span className="text-xl font-bold tracking-tight">TaskFlow</span>
+                    <span className="text-xl font-bold tracking-tight">
+                        TaskFlow
+                    </span>
                 </Link>
 
                 {/* Desktop Navigation */}
@@ -95,6 +102,16 @@ const Navbar = () => {
                         </div>
                     ) : isLoggedIn ? (
                         <div className="flex items-center gap-4 animate-in fade-in duration-500">
+                            {/* 🔥 زرار الداشبورد */}
+                            <Link href="/dashboard">
+                                <Button
+                                    variant="outline"
+                                    className="font-medium"
+                                >
+                                    Dashboard
+                                </Button>
+                            </Link>
+
                             <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
                                 {user?.image ? (
                                     <img
@@ -130,7 +147,10 @@ const Navbar = () => {
                                 </Button>
                             </Link>
                             <Link href="/register">
-                                <Button variant="taskflow" className="font-medium px-6 shadow-sm">
+                                <Button
+                                    variant="taskflow"
+                                    className="font-medium px-6 shadow-sm"
+                                >
                                     Get Started
                                 </Button>
                             </Link>
@@ -141,7 +161,12 @@ const Navbar = () => {
                 {/* Mobile Menu Button */}
                 <div className="sm:hidden flex items-center gap-3">
                     <ThemeToggle />
-                    <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} className="rounded-full">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setOpen(!open)}
+                        className="rounded-full"
+                    >
                         <Menu className="w-6 h-6" />
                     </Button>
                 </div>
@@ -152,17 +177,33 @@ const Navbar = () => {
                         <div className="p-4 flex flex-col gap-4">
                             {isLoggedIn ? (
                                 <>
+                                    <Link
+                                        href="/dashboard"
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        <Button className="w-full font-medium">
+                                            Dashboard
+                                        </Button>
+                                    </Link>
                                     <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border">
                                         {user?.image ? (
-                                            <img src={user.image} className="w-12 h-12 rounded-full object-cover" alt={user.name} />
+                                            <img
+                                                src={user.image}
+                                                className="w-12 h-12 rounded-full object-cover"
+                                                alt={user.name}
+                                            />
                                         ) : (
                                             <div className="w-12 h-12 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xl">
                                                 {user?.name?.[0]?.toUpperCase()}
                                             </div>
                                         )}
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-base">{user?.name}</span>
-                                            <span className="text-xs text-muted-foreground truncate max-w-[180px]">{user?.email}</span>
+                                            <span className="font-bold text-base">
+                                                {user?.name}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                                                {user?.email}
+                                            </span>
                                         </div>
                                     </div>
                                     <Button
@@ -176,11 +217,27 @@ const Navbar = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Link href="/login" onClick={() => setOpen(false)}>
-                                        <Button variant="outline" className="w-full font-medium">Sign in</Button>
+                                    <Link
+                                        href="/login"
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            className="w-full font-medium"
+                                        >
+                                            Sign in
+                                        </Button>
                                     </Link>
-                                    <Link href="/register" onClick={() => setOpen(false)}>
-                                        <Button variant="taskflow" className="w-full font-medium">Get Started</Button>
+                                    <Link
+                                        href="/register"
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        <Button
+                                            variant="taskflow"
+                                            className="w-full font-medium"
+                                        >
+                                            Get Started
+                                        </Button>
                                     </Link>
                                 </>
                             )}

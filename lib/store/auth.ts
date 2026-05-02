@@ -5,6 +5,7 @@ type User = {
     name: string;
     email: string;
     image?: string;
+    role?: "USER" | "ADMIN";
 };
 
 type AuthStore = {
@@ -14,12 +15,12 @@ type AuthStore = {
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
-            user: null,
+    user: null,
 
-            setUser: (user) => set({ user }),
+    setUser: (user) => set({ user }),
 
-            logout: () => {
-                Cookies.remove("token");
-                set({ user: null });
-            },
+    logout: () => {
+        Cookies.remove("token");
+        set({ user: null });
+    },
 }));

@@ -45,6 +45,7 @@ const LoginForm = () => {
                 name: userData.data.name,
                 email: userData.data.email,
                 image: userData.data.image || "",
+                role: "ADMIN",
             });
 
             console.log("Login Success");

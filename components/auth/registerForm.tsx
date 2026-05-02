@@ -188,7 +188,7 @@ ${
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         type="button"
-                        onClick={() => signIn("google", { callbackUrl: "/" })}
+                        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image
@@ -203,7 +203,7 @@ ${
 
                     <button
                         type="button"
-                        onClick={() => signIn("github", { callbackUrl: "/" })}
+                        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image

@@ -3,6 +3,9 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
+    const nextAuthToken = 
+        request.cookies.get("next-auth.session-token")?.value || 
+        request.cookies.get("__Secure-next-auth.session-token")?.value;
 
     const { pathname } = request.nextUrl;
 
@@ -14,12 +17,13 @@ export function middleware(request: NextRequest) {
         pathname.startsWith("/dashboard") ||
         pathname.startsWith("/profile");
 
-    if (isProtectedRoute && !token) {
+    const hasSession = !!(token || nextAuthToken);
+
+    if (isProtectedRoute && !hasSession) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-
-    if (isAuthRoute && token) {
+    if (isAuthRoute && hasSession) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 

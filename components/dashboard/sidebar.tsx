@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store/auth";
+import { useUIStore } from "@/lib/store/ui";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -22,10 +23,10 @@ import Link from "next/link";
 const Sidebar = () => {
     const pathname = usePathname();
     const { user, logout } = useAuthStore();
+    const { isSidebarOpen, setSidebarOpen, toggleSidebar } = useUIStore();
     const { data: session } = useSession();
 
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -33,7 +34,7 @@ const Sidebar = () => {
             const mobile = window.innerWidth < 771;
             setIsMobile(mobile);
             if (!mobile) {
-                setIsOpen(false);
+                setSidebarOpen(false);
             }
         };
         checkMobile();
@@ -41,9 +42,9 @@ const Sidebar = () => {
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-    const toggleSidebar = () => {
+    const toggleSidebarAction = () => {
         if (isMobile) {
-            setIsOpen(!isOpen);
+            toggleSidebar();
         } else {
             setIsCollapsed(!isCollapsed);
         }
@@ -68,25 +69,13 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* Mobile Burger Menu Button - Only visible on mobile when sidebar is closed */}
-            <div className="fixed top-4 left-4 z-40 min-[771px]:hidden">
-                {!isOpen && (
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="bg-background shadow-md h-10 w-10 rounded-xl border-brand/20 hover:bg-brand/5 hover:border-brand/40"
-                        onClick={() => setIsOpen(true)}
-                    >
-                        <Menu className="w-5 h-5 text-brand" />
-                    </Button>
-                )}
-            </div>
+
 
             {/* Overlay for mobile */}
-            {isOpen && (
+            {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 min-[771px]:hidden"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => setSidebarOpen(false)}
                 />
             )}
 
@@ -98,7 +87,7 @@ const Sidebar = () => {
                     isCollapsed ? "min-[771px]:w-20" : "min-[771px]:w-64",
                     // Mobile styles
                     "fixed inset-y-0 left-0 w-[280px] shadow-2xl min-[771px]:shadow-none",
-                    isOpen ? "translate-x-0" : "-translate-x-full min-[771px]:translate-x-0"
+                    isSidebarOpen ? "translate-x-0" : "-translate-x-full min-[771px]:translate-x-0"
                 )}
             >
                 {/* Header */}
@@ -122,7 +111,7 @@ const Sidebar = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-9 w-9 text-muted-foreground hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
-                        onClick={toggleSidebar}
+                        onClick={toggleSidebarAction}
                     >
                         {isMobile ? (
                             <X className="w-5 h-5" />
@@ -154,7 +143,7 @@ const Sidebar = () => {
                                             ? "min-[771px]:justify-center min-[771px]:px-0 min-[771px]:gap-0" 
                                             : "px-3 gap-3"
                                     )}
-                                    onClick={() => isMobile && setIsOpen(false)}
+                                    onClick={() => isMobile && setSidebarOpen(false)}
                                 >
                                     <Icon className={cn(
                                         "w-5 h-5 transition-colors flex-shrink-0",

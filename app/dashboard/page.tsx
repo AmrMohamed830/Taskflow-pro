@@ -1,9 +1,9 @@
 
 const page = () => {
   return (
-    <>
+    <div className="flex flex-col">
     dashboard
-    </>
+    </div>
   )
 }
 

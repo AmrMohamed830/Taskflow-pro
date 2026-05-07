@@ -1,9 +1,10 @@
 import React from 'react'
+import { Kanban } from '@/components/dashboard/kanban'
 
-const page = () => {
+const KanbanPage = () => {
   return (
-    <div>kanban</div>
+    <Kanban />
   )
 }
 
-export default page
+export default KanbanPage

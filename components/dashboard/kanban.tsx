@@ -1,0 +1,360 @@
+"use client";
+
+import React, { useState } from "react";
+import { 
+  Plus, 
+  Filter, 
+  MoreHorizontal, 
+  Calendar, 
+  GripVertical, 
+  MessageSquare,
+  Edit2,
+  UserPlus,
+  ArrowRight,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  ListTodo,
+  Tag as TagIcon
+} from "lucide-react";
+
+// --- Types ---
+
+type TaskStatus = "todo" | "in-progress" | "done";
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  tags: string[];
+  dueDate?: string;
+  commentsCount?: number;
+  assigneeInitial: string;
+  priority?: "high" | "medium" | "low";
+}
+
+interface Column {
+  id: TaskStatus;
+  title: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+// --- Mock Data ---
+
+const INITIAL_TASKS: Task[] = [
+  {
+    id: "1",
+    title: "Dashboard analytics widgets",
+    description: "Build interactive analytics dashboard with charts showing task completion rates, team productivity...",
+    status: "todo",
+    tags: ["frontend", "charts"],
+    dueDate: "Apr 10",
+    assigneeInitial: "E",
+    priority: "high"
+  },
+  {
+    id: "2",
+    title: "API rate limiting",
+    description: "Implement rate limiting middleware to protect API endpoints from abuse and ensure fair usage across...",
+    status: "todo",
+    tags: ["backend", "security"],
+    dueDate: "Apr 8",
+    assigneeInitial: "J"
+  },
+  {
+    id: "3",
+    title: "Email notification system",
+    description: "Set up email notifications for task assignments, due date reminders, and weekly progress summaries.",
+    status: "todo",
+    tags: ["backend", "notifications"],
+    assigneeInitial: "M"
+  },
+  {
+    id: "4",
+    title: "User authentication flow",
+    description: "Implement secure login and registration with OAuth providers, password reset functionality, and session...",
+    status: "in-progress",
+    tags: ["backend", "security", "high-priority"],
+    dueDate: "Apr 5",
+    commentsCount: 1,
+    assigneeInitial: "J",
+    priority: "high"
+  },
+  {
+    id: "5",
+    title: "Mobile responsiveness audit",
+    description: "Review and fix all components for mobile devices. Ensure touch-friendly interactions and proper...",
+    status: "in-progress",
+    tags: ["frontend", "mobile", "high-priority"],
+    dueDate: "Apr 3",
+    commentsCount: 1,
+    assigneeInitial: "S",
+    priority: "high"
+  },
+  {
+    id: "6",
+    title: "Performance optimization",
+    description: "Optimize bundle size, implement code splitting, and add caching strategies for faster load times.",
+    status: "in-progress",
+    tags: ["frontend", "performance"],
+    assigneeInitial: "E"
+  },
+  {
+    id: "7",
+    title: "Design system setup",
+    description: "Create a comprehensive design system with color tokens, typography scales, and spacing guidelines f...",
+    status: "done",
+    tags: ["design", "frontend"],
+    dueDate: "Mar 28",
+    commentsCount: 2,
+    assigneeInitial: "S"
+  },
+  {
+    id: "8",
+    title: "Unit test coverage",
+    description: "Increase test coverage to 80% for all critical components and business logic functions.",
+    status: "done",
+    tags: ["testing", "quality"],
+    dueDate: "Mar 30",
+    commentsCount: 1,
+    assigneeInitial: "M"
+  },
+  {
+    id: "9",
+    title: "Documentation update",
+    description: "Update API documentation with new endpoints and add component usage examples to the style guide.",
+    status: "done",
+    tags: ["documentation"],
+    assigneeInitial: "J"
+  }
+];
+
+const COLUMNS: Column[] = [
+  { id: "todo", title: "To Do", icon: <ListTodo className="h-4 w-4" />, color: "text-orange-500" },
+  { id: "in-progress", title: "In Progress", icon: <Clock className="h-4 w-4" />, color: "text-blue-500" },
+  { id: "done", title: "Done", icon: <CheckCircle2 className="h-4 w-4" />, color: "text-emerald-500" }
+];
+
+const ALL_TAGS = [
+  "backend", "charts", "database", "design", "documentation", 
+  "frontend", "high-priority", "mobile", "notifications", 
+  "performance", "quality", "security", "testing"
+];
+
+// --- Main Component ---
+
+export const Kanban = () => {
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+
+  const toggleTag = (tag: string) => {
+    setActiveTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const filteredTasks = tasks.filter(task => 
+    activeTags.length === 0 || task.tags.some(tag => activeTags.includes(tag))
+  );
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Kanban Board</h1>
+          <p className="text-muted-foreground mt-1">Manage and organize all team tasks</p>
+        </div>
+        <button className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto">
+          <Plus className="h-5 w-5" />
+          Add Task
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4 py-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+          <Filter className="h-4 w-4" />
+          Filter:
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {ALL_TAGS.map(tag => (
+            <button
+              key={tag}
+              onClick={() => toggleTag(tag)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all whitespace-nowrap flex items-center gap-2
+                ${activeTags.includes(tag) 
+                  ? "bg-brand/10 border-brand text-brand shadow-[0_0_10px_rgba(0,208,145,0.1)]" 
+                  : "bg-secondary/20 border-border/50 text-muted-foreground hover:border-muted-foreground/30"}`}
+            >
+              <TagIcon className="h-3 w-3 opacity-60" />
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Board Layout */}
+      <div className="grid grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-6 w-full min-w-0">
+        {COLUMNS.map(column => (
+          <div 
+            key={column.id} 
+            className="flex flex-col gap-6 min-w-0"
+          >
+            <KanbanColumn 
+              column={column} 
+              tasks={filteredTasks.filter(t => t.status === column.id)} 
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// --- Sub-components ---
+
+const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] }) => {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-2 px-1">
+        <div className={`h-2.5 w-2.5 rounded-full ${column.color.replace('text-', 'bg-')}`} />
+        <h3 className="font-bold text-base text-foreground">{column.title}</h3>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary/50 text-muted-foreground ml-1">
+          {tasks.length}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-4 min-h-[500px]">
+        {tasks.length > 0 ? (
+          tasks.map(task => <KanbanTask key={task.id} task={task} />)
+        ) : (
+          <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-border/40 rounded-2xl bg-secondary/5 transition-colors">
+            <p className="text-sm font-medium text-muted-foreground/60">No tasks</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const KanbanTask = ({ task }: { task: Task }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  return (
+    <div className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 overflow-hidden
+      ${task.priority === 'high' ? 'border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'border-border'}`}>
+      
+      {/* Task Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <GripVertical className="h-4 w-4 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          <h4 className="text-[15px] font-bold text-foreground leading-tight truncate">{task.title}</h4>
+        </div>
+        <div className="relative">
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`p-1.5 rounded-lg transition-all
+              ${isMenuOpen ? 'bg-brand text-black' : 'bg-secondary/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground'}`}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          
+          {isMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
+              <div className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <MenuOption icon={<Edit2 className="h-4 w-4" />} label="Edit Task" onClick={() => setIsMenuOpen(false)} />
+                <MenuOption icon={<UserPlus className="h-4 w-4" />} label="Assign To" hasSubmenu onClick={() => {}} />
+                <div className="h-px bg-border my-1.5" />
+                <MenuOption 
+                  icon={<ArrowRight className="h-4 w-4" />} 
+                  label={`Move to ${task.status === 'todo' ? 'In Progress' : 'Done'}`} 
+                  onClick={() => setIsMenuOpen(false)} 
+                />
+                <div className="h-px bg-border my-1.5" />
+                <MenuOption 
+                  icon={<Trash2 className="h-4 w-4" />} 
+                  label="Delete Task" 
+                  variant="danger" 
+                  onClick={() => setIsMenuOpen(false)} 
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-5 leading-relaxed font-medium">
+        {task.description}
+      </p>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {task.tags.map(tag => (
+          <span 
+            key={tag} 
+            className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider
+              ${tag === 'high-priority' ? 'bg-red-500 text-white' : 'bg-secondary/60 text-muted-foreground'}`}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center gap-4">
+          {task.dueDate && (
+            <div className={`flex items-center gap-1.5 text-[12px] font-bold ${task.priority === 'high' ? 'text-red-500' : 'text-muted-foreground/60'}`}>
+              <Calendar className="h-3.5 w-3.5" />
+              {task.dueDate}
+            </div>
+          )}
+          {task.commentsCount !== undefined && (
+            <div className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground/60">
+              <MessageSquare className="h-3.5 w-3.5" />
+              {task.commentsCount}
+            </div>
+          )}
+        </div>
+        <div className="h-7 w-7 rounded-full bg-secondary-brand/20 border border-brand/20 text-brand flex items-center justify-center text-[11px] font-black shadow-sm shadow-brand/5">
+          {task.assigneeInitial}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MenuOption = ({ 
+  icon, 
+  label, 
+  variant = 'default', 
+  hasSubmenu = false,
+  onClick 
+}: { 
+  icon: React.ReactNode; 
+  label: string; 
+  variant?: 'default' | 'danger';
+  hasSubmenu?: boolean;
+  onClick: () => void;
+}) => (
+  <button 
+    onClick={onClick}
+    className={`flex items-center justify-between w-full px-4 py-2.5 text-[13px] font-semibold transition-colors
+      ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/10' : 'text-foreground hover:bg-secondary/80'}`}
+  >
+    <div className="flex items-center gap-3">
+      <span className={variant === 'danger' ? 'text-red-500' : 'text-muted-foreground/70 group-hover:text-foreground transition-colors'}>
+        {icon}
+      </span>
+      {label}
+    </div>
+    {hasSubmenu && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />}
+  </button>
+);
+
+export default Kanban;

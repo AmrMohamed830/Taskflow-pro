@@ -81,7 +81,7 @@ const Sidebar = () => {
 
             <aside
                 className={cn(
-                    "border-r h-screen bg-background transition-all duration-300 z-50 flex flex-col overflow-x-hidden",
+                    "border-r h-screen bg-background transition-all duration-300 z-50 flex flex-col overflow-x-hidden flex-shrink-0",
                     // Desktop styles
                     "min-[771px]:sticky min-[771px]:top-0 min-[771px]:translate-x-0",
                     isCollapsed ? "min-[771px]:w-20" : "min-[771px]:w-64",

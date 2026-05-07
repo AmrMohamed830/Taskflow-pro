@@ -1,8 +1,9 @@
 import React from 'react'
+import { Users } from '@/components/dashboard/users'
 
 const page = () => {
   return (
-    <div>users</div>
+    <Users />
   )
 }
 

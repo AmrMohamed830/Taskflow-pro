@@ -11,10 +11,13 @@ import type { RegisterFormData } from "@/lib/types/auth";
 import { registerUser } from "@/lib/api/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Cookies from "js-cookie";
+import { useAuthStore } from "@/lib/store/auth";
 
 const RegisterForm = () => {
     const [apiError, setApiError] = useState("");
     const router = useRouter();
+    const { setUser } = useAuthStore();
     const {
         register,
         handleSubmit,
@@ -28,9 +31,18 @@ const RegisterForm = () => {
         try {
             setApiError(""); // نمسح أي error قديم
 
-            const result = await registerUser(data);
+            const result = (await registerUser(data)) 
 
-            console.log("Success:", result);
+            // ensure we have a token before setting cookie
+            if (result?.token) {
+                Cookies.set("token", result.token, {
+                    expires: 7,
+                });
+            }
+
+            if (result?.user) {
+                setUser(result.user);
+            }
 
             router.push("/dashboard");
         } catch (error) {
@@ -188,7 +200,9 @@ ${
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         type="button"
-                        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                        onClick={() =>
+                            signIn("google", { callbackUrl: "/dashboard" })
+                        }
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image
@@ -203,7 +217,9 @@ ${
 
                     <button
                         type="button"
-                        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+                        onClick={() =>
+                            signIn("github", { callbackUrl: "/dashboard" })
+                        }
                         className="flex items-center justify-center gap-2 border border-gray-700 rounded-md py-2 hover:bg-white/5 transition"
                     >
                         <Image

@@ -1,26 +1,54 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import Cookies from "js-cookie";
+import { useState, useEffect } from "react";
 
-type User = {
+export type User = {
+    id: string;
     name: string;
     email: string;
+    role: string;
+    avatar?: string;
+    department?: string;
+    isActive?: boolean;
+    lastLogin?: string;
     image?: string;
-    role?: "USER" | "ADMIN";
 };
 
 type AuthStore = {
     user: User | null;
     setUser: (user: User) => void;
-    logout: () => void; // 👈 ضيفنا دي
+    logout: () => void;
 };
 
-export const useAuthStore = create<AuthStore>((set) => ({
-    user: null,
+export const useAuthStore = create<AuthStore>()(
+    persist(
+        (set) => ({
+            user: null,
 
-    setUser: (user) => set({ user }),
+            setUser: (user) => set({ user }),
 
-    logout: () => {
-        Cookies.remove("token");
-        set({ user: null });
-    },
-}));
+            logout: () => {
+                Cookies.remove("token");
+                set({ user: null });
+            },
+        }),
+        {
+            name: "taskflow-auth-storage",
+        }
+    )
+);
+
+// Custom hook to avoid Next.js hydration issues
+export const useAuth = () => {
+    const [user, setUserState] = useState<User | null>(null);
+    const storeUser = useAuthStore((state) => state.user);
+    const setUser = useAuthStore((state) => state.setUser);
+    const logout = useAuthStore((state) => state.logout);
+
+    useEffect(() => {
+        setUserState(storeUser);
+    }, [storeUser]);
+
+    return { user, setUser, logout };
+};

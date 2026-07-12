@@ -12,23 +12,24 @@ import {
     X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useAuthStore } from "@/lib/store/auth";
+import { useAuth } from "@/lib/store/auth";
 import { useUIStore } from "@/lib/store/ui";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
-
+import { useRouter } from "next/navigation";
+import { logoutUser } from "@/lib/api/auth";
 import Link from "next/link";
 
 const Sidebar = () => {
     const pathname = usePathname();
-    const { user, logout } = useAuthStore();
+    const { user, logout } = useAuth();
     const { isSidebarOpen, setSidebarOpen, toggleSidebar } = useUIStore();
     const { data: session } = useSession();
 
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-
+    const router = useRouter();
     useEffect(() => {
         const checkMobile = () => {
             const mobile = window.innerWidth < 771;
@@ -53,24 +54,37 @@ const Sidebar = () => {
     const links = [
         { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
         { name: "Kanban Board", icon: Kanban, href: "/dashboard/kanban" },
-        { name: "Users", icon: Users, href: "/dashboard/users" },
+        ...(user?.role === "admin"
+            ? [{ name: "Users", icon: Users, href: "/dashboard/users" }]
+            : []),
         { name: "Settings", icon: Settings, href: "/dashboard/settings" },
     ];
 
     const handleLogout = async () => {
         try {
-            await signOut({ redirect: false });
+            if (session) {
+                await signOut({ redirect: false });
+            } else {
+                await logoutUser();
+            }
+
             logout();
+
+            router.replace("/login");
         } catch (error) {
-            console.error("Logout failed:", error);
+            console.error(error);
+
             logout();
+
+            router.replace("/login");
         }
     };
 
+    const userImage =
+        session?.user?.image ?? (user as { image?: string })?.image;
+
     return (
         <>
-
-
             {/* Overlay for mobile */}
             {isSidebarOpen && (
                 <div
@@ -87,19 +101,25 @@ const Sidebar = () => {
                     isCollapsed ? "min-[771px]:w-20" : "min-[771px]:w-64",
                     // Mobile styles
                     "fixed inset-y-0 left-0 w-[280px] shadow-2xl min-[771px]:shadow-none",
-                    isSidebarOpen ? "translate-x-0" : "-translate-x-full min-[771px]:translate-x-0"
+                    isSidebarOpen
+                        ? "translate-x-0"
+                        : "-translate-x-full min-[771px]:translate-x-0",
                 )}
             >
                 {/* Header */}
-                <div className={cn(
-                    "flex items-center h-[72px] border-b px-4 flex-shrink-0 transition-all duration-300",
-                    isCollapsed ? "min-[771px]:justify-center" : "justify-between"
-                )}>
+                <div
+                    className={cn(
+                        "flex items-center h-[72px] border-b px-4 flex-shrink-0 transition-all duration-300",
+                        isCollapsed
+                            ? "min-[771px]:justify-center"
+                            : "justify-between",
+                    )}
+                >
                     <Link
                         href="/"
                         className={cn(
                             "items-center gap-3 hover:opacity-90 transition-all duration-300 overflow-hidden whitespace-nowrap",
-                            isCollapsed ? "min-[771px]:hidden" : "flex"
+                            isCollapsed ? "min-[771px]:hidden" : "flex",
                         )}
                     >
                         <SquareCheckBig className="w-6 h-6 text-brand" />
@@ -107,25 +127,32 @@ const Sidebar = () => {
                             TaskFlow
                         </span>
                     </Link>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-9 w-9 text-muted-foreground hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
                         onClick={toggleSidebarAction}
                     >
                         {isMobile ? (
                             <X className="w-5 h-5" />
                         ) : (
-                            <SidebarIcon className={cn("w-5 h-5 transition-transform duration-300", isCollapsed && "rotate-180")} />
+                            <SidebarIcon
+                                className={cn(
+                                    "w-5 h-5 transition-transform duration-300",
+                                    isCollapsed && "rotate-180",
+                                )}
+                            />
                         )}
                     </Button>
                 </div>
 
                 {/* Navigation Links */}
-                <div className={cn(
-                    "flex-1 overflow-y-auto py-6 transition-all duration-300 overflow-x-hidden",
-                    isCollapsed ? "min-[771px]:px-2" : "px-3"
-                )}>
+                <div
+                    className={cn(
+                        "flex-1 overflow-y-auto py-6 transition-all duration-300 overflow-x-hidden",
+                        isCollapsed ? "min-[771px]:px-2" : "px-3",
+                    )}
+                >
                     <div className="flex flex-col gap-1.5">
                         {links.map((item, index) => {
                             const Icon = item.icon;
@@ -139,23 +166,33 @@ const Sidebar = () => {
                                         isActive
                                             ? "bg-brand text-black font-bold shadow-md shadow-brand/20"
                                             : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                                        isCollapsed 
-                                            ? "min-[771px]:justify-center min-[771px]:px-0 min-[771px]:gap-0" 
-                                            : "px-3 gap-3"
+                                        isCollapsed
+                                            ? "min-[771px]:justify-center min-[771px]:px-0 min-[771px]:gap-0"
+                                            : "px-3 gap-3",
                                     )}
-                                    onClick={() => isMobile && setSidebarOpen(false)}
+                                    onClick={() =>
+                                        isMobile && setSidebarOpen(false)
+                                    }
                                 >
-                                    <Icon className={cn(
-                                        "w-5 h-5 transition-colors flex-shrink-0",
-                                        isActive ? "text-black" : "group-hover:text-foreground"
-                                    )} />
-                                    <span className={cn(
-                                        "text-sm transition-all duration-300 overflow-hidden whitespace-nowrap",
-                                        isCollapsed ? "min-[771px]:hidden" : "block"
-                                    )}>
+                                    <Icon
+                                        className={cn(
+                                            "w-5 h-5 transition-colors flex-shrink-0",
+                                            isActive
+                                                ? "text-black"
+                                                : "group-hover:text-foreground",
+                                        )}
+                                    />
+                                    <span
+                                        className={cn(
+                                            "text-sm transition-all duration-300 overflow-hidden whitespace-nowrap",
+                                            isCollapsed
+                                                ? "min-[771px]:hidden"
+                                                : "block",
+                                        )}
+                                    >
                                         {item.name}
                                     </span>
-                                    
+
                                     {isCollapsed && (
                                         <div className="absolute left-full ml-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 hidden min-[771px]:block">
                                             {item.name}
@@ -169,21 +206,29 @@ const Sidebar = () => {
 
                 {/* Sidebar Footer - User Profile & Logout */}
                 <div className="mt-auto border-t p-4 bg-secondary/5 overflow-hidden">
-                    <div className={cn(
-                        "flex items-center justify-between gap-3",
-                        isCollapsed ? "min-[771px]:flex-col min-[771px]:gap-4" : ""
-                    )}>
-                        <div className={cn(
-                            "flex items-center min-w-0",
-                            isCollapsed ? "min-[771px]:justify-center min-[771px]:gap-0" : "gap-3"
-                        )}>
+                    <div
+                        className={cn(
+                            "flex items-center justify-between gap-3",
+                            isCollapsed
+                                ? "min-[771px]:flex-col min-[771px]:gap-4"
+                                : "",
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "flex items-center min-w-0",
+                                isCollapsed
+                                    ? "min-[771px]:justify-center min-[771px]:gap-0"
+                                    : "gap-3",
+                            )}
+                        >
                             {/* Profile Image */}
                             <div className="relative flex-shrink-0">
-                                {user?.image ? (
+                                {userImage ? (
                                     <img
-                                        src={user.image}
+                                        src={userImage}
                                         className="w-10 h-10 rounded-full border border-border shadow-sm object-cover"
-                                        alt={user.name}
+                                        alt={user?.name ?? "User"}
                                     />
                                 ) : (
                                     <div className="w-10 h-10 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-bold shadow-sm">
@@ -194,19 +239,26 @@ const Sidebar = () => {
                             </div>
 
                             {/* User Info */}
-                            <div className={cn(
-                                "flex flex-col min-w-0 transition-all duration-300",
-                                isCollapsed ? "min-[771px]:hidden" : "flex"
-                            )}>
+                            <div
+                                className={cn(
+                                    "flex flex-col min-w-0 transition-all duration-300",
+                                    isCollapsed ? "min-[771px]:hidden" : "flex",
+                                )}
+                            >
                                 <div className="flex items-center gap-1.5 overflow-hidden">
                                     <span className="text-sm font-bold truncate">
                                         {user?.name}
                                     </span>
                                     <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md bg-brand/10 text-[9px] font-bold text-brand uppercase tracking-wider">
-                                        {user?.role === "ADMIN" ? "Admin" : "User"}
+                                        {user?.role === "admin"
+                                            ? "admin"
+                                            : "User"}
                                     </span>
                                 </div>
-                                <span className="text-[11px] text-muted-foreground truncate" title={user?.email}>
+                                <span
+                                    className="text-[11px] text-muted-foreground truncate"
+                                    title={user?.email}
+                                >
                                     {user?.email}
                                 </span>
                             </div>
@@ -219,7 +271,9 @@ const Sidebar = () => {
                             onClick={handleLogout}
                             className={cn(
                                 "flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all rounded-full h-9 w-9",
-                                isCollapsed ? "min-[771px]:h-10 min-[771px]:w-10" : ""
+                                isCollapsed
+                                    ? "min-[771px]:h-10 min-[771px]:w-10"
+                                    : "",
                             )}
                             title="Logout"
                         >

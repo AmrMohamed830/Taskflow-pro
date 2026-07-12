@@ -10,11 +10,17 @@ export type LoginFormData = {
 
 export type LoginResponse = {
     success: boolean;
-    message: string;
     token: string;
-    data: {
+    user: {
         id: string;
         name: string;
-        role: string;
+        email: string;
+        role: "user" | "admin";
+        avatar?: string;
+        department?: string;
+        isActive?: boolean;
+        lastLogin?: string;
+        createdAt?: string;
+        updatedAt?: string;
     };
 };

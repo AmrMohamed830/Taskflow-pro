@@ -7,7 +7,7 @@ type FetchOptions = RequestInit & {
     params?: Record<string, string>;
 };
 
-async function apiRequest<T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+async function apiRequest<T = unknown>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const token = Cookies.get("token");
     
     // تجهيز الـ Headers

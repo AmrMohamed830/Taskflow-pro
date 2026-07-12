@@ -5,7 +5,7 @@ import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import type { LoginFormData } from "@/lib/types/auth";
-import { loginUser, getMe } from "@/lib/api/auth";
+import { loginUser } from "@/lib/api/auth";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,28 +27,12 @@ const LoginForm = () => {
     const onSubmit = async (data: LoginFormData) => {
         try {
             const result = await loginUser(data);
-
+            console.log(result.user);
             Cookies.set("token", result.token, {
                 expires: 7,
             });
+            setUser(result.user);
 
-            // Fetch full user data after login to get the image and other details
-            const userData = (await getMe()) as {
-                data: {
-                    name: string;
-                    email: string;
-                    image?: string;
-                };
-            };
-
-            setUser({
-                name: userData.data.name,
-                email: userData.data.email,
-                image: userData.data.image || "",
-                role: "ADMIN",
-            });
-
-            console.log("Login Success");
             router.push("/dashboard");
         } catch (error) {
             if (error instanceof Error) {

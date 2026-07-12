@@ -1,56 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { SquareCheckBig, Menu, LogOut, Loader2 } from "lucide-react";
 import ThemeToggle from "../global/theme";
 import { Button } from "../ui/button";
 import Link from "next/link";
-import { useAuthStore } from "@/lib/store/auth";
-import { getMe } from "@/lib/api/auth";
+import { useAuth } from "@/lib/store/auth";
 import Cookies from "js-cookie";
 
 const Navbar = () => {
     const [open, setOpen] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-    const { user, setUser, logout } = useAuthStore();
+    const { user, setUser, logout } = useAuth();
     const { data: session, status } = useSession();
 
-    // دالة لجلب بيانات المستخدم من الـ Backend
-    const fetchUserData = useCallback(async () => {
-        const token = Cookies.get("token");
-        if (token && !user) {
-            try {
-                const userData = await getMe();
-                // التحقق من هيكل البيانات القادم من Strapi أو الـ API الخاص بك
-                const userProfile = userData?.data || userData;
-
-                if (userProfile) {
-                    setUser({
-                        name:
-                            userProfile.name || userProfile.username || "User",
-                        email: userProfile.email || "",
-                        image: userProfile.image || userProfile.avatar || "",
-                    });
-                }
-            } catch (error) {
-                console.error("Auth initialization failed:", error);
-                // ملاحظة: getMe تقوم بعمل logout تلقائياً عند الفشل
-            }
-        }
-        setIsInitialLoading(false);
-    }, [user, setUser]);
-
     useEffect(() => {
+        
         // 1. التعامل مع NextAuth (Google/GitHub)
         if (status === "authenticated" && session?.user) {
             // التحقق لتجنب التحديث اللانهائي (Infinite Loop)
             if (!user || user.email !== session.user.email) {
                 setUser({
+                    id: user?.id || "",
+                    role: user?.role || "user",
                     name: session.user.name || "",
                     email: session.user.email || "",
-                    image: session.user.image || "",
+                    avatar: session.user.image || "",
                 });
             }
             // Use setTimeout to avoid "setState synchronously within an effect" warning
@@ -58,13 +35,15 @@ const Navbar = () => {
         }
         // 2. التعامل مع الـ Token اليدوي (Email/Password)
         else if (status === "unauthenticated") {
-            fetchUserData();
+            setTimeout(() => {
+                setIsInitialLoading(false);
+            }, 0);
         }
         // 3. حالة التحميل الأساسية لـ NextAuth
         else if (status === "loading") {
-            setIsInitialLoading(true);
+            setTimeout(() => setIsInitialLoading(true), 0);
         }
-    }, [session, status, setUser, fetchUserData, user]);
+    }, [session, status, setUser, user]);
 
     const handleLogout = async () => {
         try {

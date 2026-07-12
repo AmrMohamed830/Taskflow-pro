@@ -1,17 +1,18 @@
 import type { LoginResponse, RegisterFormData, LoginFormData } from "../types/auth";
 import { api } from "./client";
 
-export const registerUser = async (data: RegisterFormData): Promise<any> => {
-    return api.post("/auth/register", data);
+export const registerUser = async (
+    data: RegisterFormData
+): Promise<LoginResponse> => {
+    return api.post<LoginResponse>("/auth/register", data);
 };
-
 export const loginUser = async (data: LoginFormData): Promise<LoginResponse> => {
     return api.post<LoginResponse>("/auth/login", {
-        identifier: data.email,
+        email: data.email,
         password: data.password,
     });
 };
 
-export const getMe = async (): Promise<any> => {
-    return api.get("/auth/me");
+export const logoutUser = async () => {
+    return api.post("/auth/logout");
 };

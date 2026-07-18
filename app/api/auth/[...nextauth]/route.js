@@ -18,6 +18,29 @@ export const authOptions = {
             if (user) {
                 token.id = user.id;
                 token.image = user.image;
+
+                // Sync with the backend database
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/social-login`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name: user.name,
+                            email: user.email,
+                            avatar: user.image,
+                        }),
+                    });
+
+                    const data = await response.json();
+                    if (data.success && data.token) {
+                        token.backendToken = data.token;
+                        token.backendUser = data.user;
+                    }
+                } catch (error) {
+                    console.error("Error in NextAuth social login callback:", error);
+                }
             }
             return token;
         },
@@ -25,6 +48,8 @@ export const authOptions = {
             if (token) {
                 session.user.id = token.id;
                 session.user.image = token.image;
+                session.backendToken = token.backendToken;
+                session.backendUser = token.backendUser;
             }
             return session;
         },

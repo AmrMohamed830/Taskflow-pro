@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import { 
   Plus, 
@@ -17,10 +16,10 @@ import {
   ListTodo,
   Tag as TagIcon
 } from "lucide-react";
-
+import { useTasks } from "@/lib/hooks/useTasks";
+import type { TaskStatus, Task as APITask } from "@/lib/types/tasks";
+import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
 // --- Types ---
-
-type TaskStatus = "todo" | "in-progress" | "done";
 
 interface Task {
   id: string;
@@ -41,100 +40,10 @@ interface Column {
   color: string;
 }
 
-// --- Mock Data ---
-
-const INITIAL_TASKS: Task[] = [
-  {
-    id: "1",
-    title: "Dashboard analytics widgets",
-    description: "Build interactive analytics dashboard with charts showing task completion rates, team productivity...",
-    status: "todo",
-    tags: ["frontend", "charts"],
-    dueDate: "Apr 10",
-    assigneeInitial: "E",
-    priority: "high"
-  },
-  {
-    id: "2",
-    title: "API rate limiting",
-    description: "Implement rate limiting middleware to protect API endpoints from abuse and ensure fair usage across...",
-    status: "todo",
-    tags: ["backend", "security"],
-    dueDate: "Apr 8",
-    assigneeInitial: "J"
-  },
-  {
-    id: "3",
-    title: "Email notification system",
-    description: "Set up email notifications for task assignments, due date reminders, and weekly progress summaries.",
-    status: "todo",
-    tags: ["backend", "notifications"],
-    assigneeInitial: "M"
-  },
-  {
-    id: "4",
-    title: "User authentication flow",
-    description: "Implement secure login and registration with OAuth providers, password reset functionality, and session...",
-    status: "in-progress",
-    tags: ["backend", "security", "high-priority"],
-    dueDate: "Apr 5",
-    commentsCount: 1,
-    assigneeInitial: "J",
-    priority: "high"
-  },
-  {
-    id: "5",
-    title: "Mobile responsiveness audit",
-    description: "Review and fix all components for mobile devices. Ensure touch-friendly interactions and proper...",
-    status: "in-progress",
-    tags: ["frontend", "mobile", "high-priority"],
-    dueDate: "Apr 3",
-    commentsCount: 1,
-    assigneeInitial: "S",
-    priority: "high"
-  },
-  {
-    id: "6",
-    title: "Performance optimization",
-    description: "Optimize bundle size, implement code splitting, and add caching strategies for faster load times.",
-    status: "in-progress",
-    tags: ["frontend", "performance"],
-    assigneeInitial: "E"
-  },
-  {
-    id: "7",
-    title: "Design system setup",
-    description: "Create a comprehensive design system with color tokens, typography scales, and spacing guidelines f...",
-    status: "done",
-    tags: ["design", "frontend"],
-    dueDate: "Mar 28",
-    commentsCount: 2,
-    assigneeInitial: "S"
-  },
-  {
-    id: "8",
-    title: "Unit test coverage",
-    description: "Increase test coverage to 80% for all critical components and business logic functions.",
-    status: "done",
-    tags: ["testing", "quality"],
-    dueDate: "Mar 30",
-    commentsCount: 1,
-    assigneeInitial: "M"
-  },
-  {
-    id: "9",
-    title: "Documentation update",
-    description: "Update API documentation with new endpoints and add component usage examples to the style guide.",
-    status: "done",
-    tags: ["documentation"],
-    assigneeInitial: "J"
-  }
-];
-
 const COLUMNS: Column[] = [
   { id: "todo", title: "To Do", icon: <ListTodo className="h-4 w-4" />, color: "text-orange-500" },
-  { id: "in-progress", title: "In Progress", icon: <Clock className="h-4 w-4" />, color: "text-blue-500" },
-  { id: "done", title: "Done", icon: <CheckCircle2 className="h-4 w-4" />, color: "text-emerald-500" }
+  { id: "doing", title: "In Progress", icon: <Clock className="h-4 w-4" />, color: "text-blue-500" },
+  { id: "done", title: "Done", icon: <CheckCircle2 className="h-4 w-4" />, color: "text-emerald-500" },
 ];
 
 const ALL_TAGS = [
@@ -146,8 +55,38 @@ const ALL_TAGS = [
 // --- Main Component ---
 
 export const Kanban = () => {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const { data, isLoading, error } = useTasks();
+
+
+  if (isLoading) {
+      return <div>Loading...</div>;
+  }
+  if (error) {
+      console.log(error);
+      return <div>Something went wrong.</div>;
+  }
+
+  const apiTasks: APITask[] = data?.tasks ?? [];
+
+  const tasks: Task[] = apiTasks.map(t => ({
+    id: t._id,
+    title: t.title,
+    description: t.description,
+    status: t.status,
+    tags: t.tags || [],
+    dueDate: t.dueDate ? (() => {
+      const date = new Date(t.dueDate);
+      return isNaN(date.getTime()) ? t.dueDate : date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    })() : undefined,
+    commentsCount: t.comments?.length || 0,
+    assigneeInitial: t.assignedTo?.name ? t.assignedTo.name.charAt(0).toUpperCase() : "?",
+    priority: t.priority
+  }));
 
   const toggleTag = (tag: string) => {
     setActiveTags(prev => 
@@ -242,7 +181,7 @@ const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] }) => {
 
 const KanbanTask = ({ task }: { task: Task }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+const { mutate } = useUpdateTaskStatus();
   return (
     <div className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 overflow-hidden
       ${task.priority === 'high' ? 'border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'border-border'}`}>
@@ -269,11 +208,22 @@ const KanbanTask = ({ task }: { task: Task }) => {
                 <MenuOption icon={<Edit2 className="h-4 w-4" />} label="Edit Task" onClick={() => setIsMenuOpen(false)} />
                 <MenuOption icon={<UserPlus className="h-4 w-4" />} label="Assign To" hasSubmenu onClick={() => {}} />
                 <div className="h-px bg-border my-1.5" />
+                {task.status !== "done" && (
                 <MenuOption 
                   icon={<ArrowRight className="h-4 w-4" />} 
                   label={`Move to ${task.status === 'todo' ? 'In Progress' : 'Done'}`} 
-                  onClick={() => setIsMenuOpen(false)} 
+                  onClick={() => {
+    mutate({
+      id: task.id,
+      data: {
+        status: task.status === "todo" ? "doing" : "done",
+      },
+    });
+
+    setIsMenuOpen(false);
+  }}
                 />
+                )}
                 <div className="h-px bg-border my-1.5" />
                 <MenuOption 
                   icon={<Trash2 className="h-4 w-4" />} 

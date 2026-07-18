@@ -92,9 +92,9 @@ const Navbar = () => {
                             </Link>
 
                             <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
-                                {user?.image ? (
+                                {user?.avatar ? (
                                     <img
-                                        src={user.image}
+                                        src={user.avatar}
                                         alt={user.name}
                                         className="w-8 h-8 rounded-full object-cover border border-brand/20"
                                     />
@@ -165,9 +165,9 @@ const Navbar = () => {
                                         </Button>
                                     </Link>
                                     <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border">
-                                        {user?.image ? (
+                                        {user?.avatar ? (
                                             <img
-                                                src={user.image}
+                                                src={user.avatar}
                                                 className="w-12 h-12 rounded-full object-cover"
                                                 alt={user.name}
                                             />

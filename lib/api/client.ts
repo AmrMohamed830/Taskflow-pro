@@ -4,7 +4,7 @@ import { useAuthStore } from "@/lib/store/auth";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type FetchOptions = RequestInit & {
-    params?: Record<string, string>;
+    params?: Record<string, string | number | boolean | undefined>;
 };
 
 async function apiRequest<T = unknown>(endpoint: string, options: FetchOptions = {}): Promise<T> {
@@ -21,7 +21,12 @@ async function apiRequest<T = unknown>(endpoint: string, options: FetchOptions =
     // تجهيز الـ URL مع الـ Query Params إن وجدت
     let url = `${BASE_URL}${endpoint}`;
     if (options.params) {
-        const searchParams = new URLSearchParams(options.params);
+        const searchParams = new URLSearchParams();
+        Object.entries(options.params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                searchParams.append(key, String(value));
+            }
+        });
         url += `?${searchParams.toString()}`;
     }
 
@@ -63,4 +68,6 @@ export const api = {
     
     delete: <T>(endpoint: string, options?: FetchOptions) => 
         apiRequest<T>(endpoint, { ...options, method: "DELETE" }),
+    patch: <T>(endpoint: string, body?: unknown, options?: FetchOptions) =>
+    apiRequest<T>(endpoint, {...options,method: "PATCH",body: JSON.stringify(body),}),
 };

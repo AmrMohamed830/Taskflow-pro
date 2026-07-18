@@ -19,6 +19,7 @@ import {
 import { useTasks } from "@/lib/hooks/useTasks";
 import type { TaskStatus, Task as APITask } from "@/lib/types/tasks";
 import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
+import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
 // --- Types ---
 
 interface Task {
@@ -182,6 +183,7 @@ const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] }) => {
 const KanbanTask = ({ task }: { task: Task }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 const { mutate } = useUpdateTaskStatus();
+const { mutate: deleteTask } = useDeleteTask();
   return (
     <div className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 overflow-hidden
       ${task.priority === 'high' ? 'border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'border-border'}`}>
@@ -229,7 +231,10 @@ const { mutate } = useUpdateTaskStatus();
                   icon={<Trash2 className="h-4 w-4" />} 
                   label="Delete Task" 
                   variant="danger" 
-                  onClick={() => setIsMenuOpen(false)} 
+                 onClick={() => {
+    deleteTask(task.id);
+    setIsMenuOpen(false);
+}}
                 />
               </div>
             </>

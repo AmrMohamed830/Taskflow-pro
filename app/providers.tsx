@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import Cookies from "js-cookie";
 import { useAuthStore } from "@/lib/store/auth";
+import ToasterProvider from "@/components/providers/toaster-provider";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ export default function Providers({
         <SessionProvider>
             <QueryClientProvider client={queryClient}>
                 <AuthSync />
+                <ToasterProvider />
                 {children}
             </QueryClientProvider>
         </SessionProvider>

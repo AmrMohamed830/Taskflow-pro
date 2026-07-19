@@ -20,6 +20,7 @@ import { useTasks } from "@/lib/hooks/useTasks";
 import type { TaskStatus, Task as APITask } from "@/lib/types/tasks";
 import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
 import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
+import { CreateTaskDialog } from "./create-task-dialog";
 // --- Types ---
 
 interface Task {
@@ -82,6 +83,7 @@ const ALL_TAGS = [
 
 export const Kanban = () => {
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { data, isLoading, error } = useTasks();
 
   if (isLoading) {
@@ -143,9 +145,12 @@ export const Kanban = () => {
             Manage and organize all team tasks
           </p>
         </div>
-        <button className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto">
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
+        >
           <Plus className="h-5 w-5" />
-          Add Task
+          New Task
         </button>
       </div>
 
@@ -185,6 +190,11 @@ export const Kanban = () => {
           </div>
         ))}
       </div>
+
+      <CreateTaskDialog
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 };
@@ -341,25 +351,29 @@ const KanbanTask = ({ task }: { task: Task }) => {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm" 
-            onClick={() => !isDeleting && setIsDeleteModalOpen(false)} 
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
           />
           <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-foreground mb-2">Delete Task</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              Delete Task
+            </h3>
             <p className="text-muted-foreground text-sm leading-relaxed mb-8">
-              Are you sure you want to delete <span className="font-bold text-foreground">{task.title}</span>? This action cannot be undone.
+              Are you sure you want to delete{" "}
+              <span className="font-bold text-foreground">{task.title}</span>?
+              This action cannot be undone.
             </p>
 
             <div className="flex items-center justify-end gap-3">
-              <button 
+              <button
                 disabled={isDeleting}
                 onClick={() => setIsDeleteModalOpen(false)}
                 className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground border border-border hover:bg-secondary disabled:opacity-50 transition-all cursor-pointer"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 disabled={isDeleting}
                 onClick={() => {
                   deleteTask(task.id);
@@ -368,9 +382,25 @@ const KanbanTask = ({ task }: { task: Task }) => {
               >
                 {isDeleting ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Deleting...
                   </>

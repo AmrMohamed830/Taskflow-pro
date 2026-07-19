@@ -313,17 +313,18 @@ const KanbanTask = ({ task }: { task: Task }) => {
       </p>
 
       {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {task.tags.map((tag) => (
-          <span
-            key={tag}
-            className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider
-              ${tag === "high-priority" ? "bg-red-500 text-white" : "bg-secondary/60 text-muted-foreground"}`}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+      {task.tags && task.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          {task.tags.map((tag, index) => (
+            <span
+              key={`${tag}-${index}`}
+              className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider ${getTagStyle(tag)}`}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-auto">
@@ -451,5 +452,32 @@ const MenuOption = ({
     )}
   </button>
 );
+
+const getTagStyle = (tag: string) => {
+  const normalized = tag.toLowerCase();
+  switch (normalized) {
+    case "high-priority":
+    case "urgent":
+    case "bug":
+      return "bg-red-500/10 text-red-500 border border-red-500/20";
+    case "frontend":
+    case "design":
+      return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+    case "backend":
+    case "database":
+      return "bg-purple-500/10 text-purple-400 border border-purple-500/20";
+    case "testing":
+    case "quality":
+      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+    case "performance":
+      return "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20";
+    case "security":
+      return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+    case "documentation":
+      return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+    default:
+      return "bg-secondary/40 text-muted-foreground border border-border/30";
+  }
+};
 
 export default Kanban;

@@ -4,6 +4,12 @@ import React, { useState } from "react";
 import { X, Calendar, User as UserIcon, Tag as TagIcon } from "lucide-react";
 import type { TaskStatus, TaskPriority } from "@/lib/types/tasks";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  createTaskSchema,
+  type CreateTaskFormData,
+} from "@/lib/validations/task";
+import { useCreateTask } from "@/lib/hooks/useCreateTask";
 
 interface CreateTaskDialogProps {
   isOpen: boolean;
@@ -38,21 +44,25 @@ export const CreateTaskDialog = ({
   isOpen,
   onClose,
 }: CreateTaskDialogProps) => {
-  // Form states
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("todo");
-  const [priority, setPriority] = useState<TaskPriority>("medium");
-  const [dueDate, setDueDate] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [errors, setErrors] = useState<{ title?: string }>({});
+
   const {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors: formErrors },
-  } = useForm<CreateTaskData>();
+  } = useForm<CreateTaskFormData>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      status: "todo",
+      priority: "medium",
+      tags: [],
+    },
+  });
+
+  const createTaskMutation = useCreateTask();
+
   if (!isOpen) return null;
 
   const handleToggleTag = (tag: string) => {
@@ -67,8 +77,14 @@ export const CreateTaskDialog = ({
     });
   };
 
-  const onSubmit = (data: CreateTaskData) => {
-    console.log(data);
+  const onSubmit = (data: CreateTaskFormData) => {
+    createTaskMutation.mutate(data, {
+      onSuccess: () => {
+        reset();
+        setSelectedTags([]);
+        onClose();
+      },
+    });
   };
 
   return (
@@ -111,12 +127,12 @@ export const CreateTaskDialog = ({
               {...register("title")}
               placeholder="e.g. Implement auth page"
               className={`w-full px-4 py-2.5 rounded-xl border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all placeholder:text-muted-foreground/50
-                ${errors.title ? "border-red-500/50 focus:ring-red-500/20" : "border-border"}`}
+                ${formErrors.title ? "border-red-500/50 focus:ring-red-500/20" : "border-border"}`}
             />
-            {errors.title && (
-              <span className="text-xs font-semibold text-red-500">
-                {errors.title}
-              </span>
+            {formErrors.title && (
+              <p className="text-sm text-red-500 mt-1">
+                {formErrors.title.message}
+              </p>
             )}
           </div>
 

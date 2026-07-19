@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Calendar, User as UserIcon, Tag as TagIcon } from "lucide-react";
-import type { TaskStatus, TaskPriority } from "@/lib/types/tasks";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { X, Calendar, Tag as TagIcon, ChevronDown, Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -10,6 +9,8 @@ import {
   type CreateTaskFormData,
 } from "@/lib/validations/task";
 import { useCreateTask } from "@/lib/hooks/useCreateTask";
+import { useUsers } from "@/lib/hooks/useUsers";
+import type { User } from "@/lib/types/users";
 
 interface CreateTaskDialogProps {
   isOpen: boolean;
@@ -32,13 +33,159 @@ const ALL_TAGS = [
   "testing",
 ];
 
-const MOCK_USERS = [
-  { _id: "1", name: "Alex Admin" },
-  { _id: "2", name: "Sarah Connor" },
-  { _id: "3", name: "John Smith" },
-  { _id: "4", name: "Emily Chen" },
-  { _id: "5", name: "Mike Johnson" },
-];
+const getInitials = (name: string) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+interface Option {
+  value: string;
+  label: string;
+  avatar?: string;
+  sublabel?: string;
+}
+
+const CustomSelect = ({
+  value,
+  onChange,
+  options,
+  placeholder = "Select option",
+  isLoading = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: Option[];
+  placeholder?: string;
+  isLoading?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  const renderAvatar = (avatar: string, label: string) => {
+    const isImage =
+      avatar &&
+      (avatar.startsWith("http") ||
+        avatar.startsWith("/") ||
+        avatar.includes("."));
+    if (isImage) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatar}
+          alt={label}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = "none";
+            const parent = target.parentElement;
+            if (parent && !parent.querySelector(".initials-fallback")) {
+              const span = document.createElement("span");
+              span.className = "initials-fallback";
+              span.innerText = getInitials(label);
+              parent.appendChild(span);
+            }
+          }}
+        />
+      );
+    }
+    return <span>{avatar ? avatar : getInitials(label)}</span>;
+  };
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => !isLoading && setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-secondary/20 hover:bg-secondary/30 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all text-left cursor-pointer select-none"
+      >
+        <span className="flex items-center gap-2 truncate text-sm">
+          {isLoading ? (
+            <span className="text-muted-foreground">Loading...</span>
+          ) : selectedOption ? (
+            <>
+              {selectedOption.avatar !== undefined && (
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-brand/10 border border-brand/20 flex items-center justify-center text-[9px] font-bold text-brand uppercase shrink-0">
+                  {renderAvatar(selectedOption.avatar, selectedOption.label)}
+                </div>
+              )}
+              <span className="truncate">{selectedOption.label}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground/50">{placeholder}</span>
+          )}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 opacity-50 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1.5 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin">
+            {options.length === 0 ? (
+              <div className="px-4 py-2.5 text-xs text-muted-foreground text-center">
+                No options available
+              </div>
+            ) : (
+              options.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-secondary/40 text-left cursor-pointer
+                      ${isSelected ? "bg-brand/10 text-brand" : "text-foreground"}
+                    `}
+                  >
+                    <span className="flex items-center gap-2.5 truncate">
+                      {option.avatar !== undefined && (
+                        <div className="w-6 h-6 rounded-full overflow-hidden bg-brand/10 border border-brand/20 flex items-center justify-center text-[10px] font-bold text-brand uppercase shrink-0">
+                          {renderAvatar(option.avatar, option.label)}
+                        </div>
+                      )}
+                      <span className="flex flex-col truncate">
+                        <span className="truncate">{option.label}</span>
+                        {option.sublabel && (
+                          <span className="text-[10px] text-muted-foreground font-normal truncate">
+                            {option.sublabel}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    {isSelected && (
+                      <Check className="h-4 w-4 text-brand shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const CreateTaskDialog = ({
   isOpen,
@@ -50,6 +197,7 @@ export const CreateTaskDialog = ({
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors: formErrors },
   } = useForm<CreateTaskFormData>({
@@ -62,6 +210,33 @@ export const CreateTaskDialog = ({
   });
 
   const createTaskMutation = useCreateTask();
+  const { data: usersResponse, isLoading } = useUsers();
+
+  const statusValue = watch("status");
+  const priorityValue = watch("priority");
+  const assignedToValue = watch("assignedTo") ?? "";
+
+  const statusOptions = [
+    { value: "todo", label: "To Do" },
+    { value: "doing", label: "In Progress" },
+    { value: "done", label: "Done" },
+  ];
+
+  const priorityOptions = [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+  ];
+
+  const assignedToOptions = useMemo(() => {
+    const usersList = (usersResponse?.data ?? []) as User[];
+    return usersList.map((user: User) => ({
+      value: user._id,
+      label: user.name,
+      sublabel: user.email,
+      avatar: user.avatar || "",
+    }));
+  }, [usersResponse?.data]);
 
   if (!isOpen) return null;
 
@@ -155,20 +330,16 @@ export const CreateTaskDialog = ({
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Status
               </label>
-              <select
-                {...register("status")}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all cursor-pointer"
-              >
-                <option value="todo" className="bg-popover text-foreground">
-                  To Do
-                </option>
-                <option value="doing" className="bg-popover text-foreground">
-                  In Progress
-                </option>
-                <option value="done" className="bg-popover text-foreground">
-                  Done
-                </option>
-              </select>
+              <input type="hidden" {...register("status")} />
+              <CustomSelect
+                value={statusValue}
+                onChange={(val) =>
+                  setValue("status", val as "todo" | "doing" | "done", {
+                    shouldValidate: true,
+                  })
+                }
+                options={statusOptions}
+              />
             </div>
 
             {/* Priority */}
@@ -176,20 +347,16 @@ export const CreateTaskDialog = ({
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Priority
               </label>
-              <select
-                {...register("priority")}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all cursor-pointer"
-              >
-                <option value="low" className="bg-popover text-foreground">
-                  Low
-                </option>
-                <option value="medium" className="bg-popover text-foreground">
-                  Medium
-                </option>
-                <option value="high" className="bg-popover text-foreground">
-                  High
-                </option>
-              </select>
+              <input type="hidden" {...register("priority")} />
+              <CustomSelect
+                value={priorityValue}
+                onChange={(val) =>
+                  setValue("priority", val as "low" | "medium" | "high", {
+                    shouldValidate: true,
+                  })
+                }
+                options={priorityOptions}
+              />
             </div>
           </div>
 
@@ -208,26 +375,25 @@ export const CreateTaskDialog = ({
 
             {/* Assign To */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <UserIcon className="h-3.5 w-3.5 opacity-75" /> Assign To
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Assigned To
               </label>
-              <select
-                {...register("assignedTo")}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all cursor-pointer"
-              >
-                <option value="" className="bg-popover text-foreground">
-                  Unassigned
-                </option>
-                {MOCK_USERS.map((user) => (
-                  <option
-                    key={user._id}
-                    value={user._id}
-                    className="bg-popover text-foreground"
-                  >
-                    {user.name}
-                  </option>
-                ))}
-              </select>
+              <input type="hidden" {...register("assignedTo")} />
+              <CustomSelect
+                value={assignedToValue}
+                onChange={(val) =>
+                  setValue("assignedTo", val, { shouldValidate: true })
+                }
+                options={assignedToOptions}
+                placeholder="Select a user"
+                isLoading={isLoading}
+              />
+
+              {formErrors.assignedTo && (
+                <p className="text-sm text-red-500">
+                  {formErrors.assignedTo.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -269,9 +435,10 @@ export const CreateTaskDialog = ({
             </button>
             <button
               type="submit"
+              disabled={createTaskMutation.isPending}
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
             >
-              Create Task
+              {createTaskMutation.isPending ? "Creating..." : "Create Task"}
             </button>
           </div>
         </form>

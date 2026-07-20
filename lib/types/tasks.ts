@@ -103,3 +103,8 @@ export interface AddCommentResponse {
   success: boolean;
   comment: TaskComment;
 }
+
+export interface DeleteCommentResponse {
+  success: boolean;
+  message: string;
+}

@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/store/auth";
 import { useTaskComments } from "@/lib/hooks/useTaskComments";
 import type { TaskComment } from "@/lib/types/tasks";
 import { useAddComment } from "@/lib/hooks/useAddComment";
+import { Trash2 } from "lucide-react";
+import { useDeleteComment } from "@/lib/hooks/useDeleteComment";
 
 interface TaskDetailsDialogProps {
   isOpen: boolean;
@@ -32,12 +34,11 @@ export const TaskDetailsDialog = ({
   const task = data?.task;
   const { user: currentUser } = useAuth();
   const addCommentMutation = useAddComment();
+  const deleteCommentMutation = useDeleteComment();
   const { data: commentsResponse, isLoading: commentsLoading } =
     useTaskComments(taskId ?? "");
   const [commentText, setCommentText] = useState("");
-  const [localComments, setLocalComments] = useState<
-    Array<{ id: string; name: string; text: string; time: string }>
-  >([]);
+ 
 
   if (!isOpen) return null;
 
@@ -104,15 +105,23 @@ export const TaskDetailsDialog = ({
         });
   };
 
+  const handleDeleteComment = (commentId: string) => {
+    if (!taskId || !commentId) return;
+
+    deleteCommentMutation.mutate({
+      taskId,
+      commentId,
+    });
+  };
+
   const allComments = [
     ...(commentsResponse?.comments?.map((comment: TaskComment) => ({
       id: comment._id,
+      userId: comment.userId,
       name: comment.userName,
       text: comment.text,
       time: formatDate(comment.createdAt),
     })) || []),
-
-    ...localComments,
   ];
 
   return (
@@ -250,32 +259,65 @@ export const TaskDetailsDialog = ({
                 </div>
 
                 {/* Comment List */}
-                {allComments.length > 0 && (
-                  <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-                    {allComments.map((comment, idx) => (
-                      <div
-                        key={comment.id || idx}
-                        className="flex items-start gap-3"
-                      >
-                        <div className="w-7 h-7 rounded-full bg-[#1e2432] border border-[#2d3445] text-white font-bold flex items-center justify-center text-xs shrink-0">
-                          {comment.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-white">
-                              {comment.name}
-                            </span>
-                            <span className="text-[11px] text-zinc-400 font-normal">
-                              {comment.time}
-                            </span>
-                          </div>
-                          <p className="text-xs text-zinc-300 mt-0.5 leading-relaxed">
-                            {comment.text}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                {commentsLoading ? (
+                  <div className="flex items-center justify-center py-4 text-xs text-zinc-400">
+                    <div className="w-4 h-4 border-2 border-[#00c985] border-t-transparent rounded-full animate-spin mr-2" />
+                    Loading comments...
                   </div>
+                ) : allComments.length > 0 ? (
+                  <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                    {allComments.map((comment, idx) => {
+                      const isOwner =
+                        !comment.userId ||
+                        currentUser?.id === comment.userId ||
+                        (currentUser as { id?: string; _id?: string })?._id ===
+                          comment.userId;
+
+                      return (
+                        <div
+                          key={comment.id || idx}
+                          className="flex items-start justify-between gap-3 group p-1.5 rounded-lg hover:bg-[#181d28] transition-colors"
+                        >
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-[#1e2432] border border-[#2d3445] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                              {comment.name
+                                ? comment.name.charAt(0).toUpperCase()
+                                : "U"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-white truncate">
+                                  {comment.name}
+                                </span>
+                                <span className="text-[11px] text-zinc-400 font-normal shrink-0">
+                                  {comment.time}
+                                </span>
+                              </div>
+                              <p className="text-xs text-zinc-300 mt-0.5 leading-relaxed break-words">
+                                {comment.text}
+                              </p>
+                            </div>
+                          </div>
+
+                          {isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              disabled={deleteCommentMutation.isPending}
+                              className="text-zinc-500 hover:text-red-400 p-1 rounded transition-colors cursor-pointer disabled:opacity-50 shrink-0 opacity-0 group-hover:opacity-100"
+                              title="Delete comment"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 italic py-1">
+                    No comments yet.
+                  </p>
                 )}
 
                 {/* New Comment Input Box */}

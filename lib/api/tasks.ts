@@ -11,6 +11,7 @@ import type {
   CommentsResponse,
   AddCommentData,
   AddCommentResponse,
+  DeleteCommentResponse,
 } from "../types/tasks";
 
 export const getTasks = async (
@@ -60,4 +61,13 @@ export const addComment = async (
   data: AddCommentData,
 ): Promise<AddCommentResponse> => {
   return api.post<AddCommentResponse>(`/tasks/${taskId}/comments`, data);
+};
+
+export const deleteComment = async (
+  taskId: string,
+  commentId: string,
+): Promise<DeleteCommentResponse> => {
+  return api.delete<DeleteCommentResponse>(
+    `/tasks/${taskId}/comments/${commentId}`,
+  );
 };

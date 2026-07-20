@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { useTask } from "@/lib/hooks/useTask";
 import { useAuth } from "@/lib/store/auth";
+import { useTaskComments } from "@/lib/hooks/useTaskComments";
+import type { TaskComment } from "@/lib/types/tasks";
+import { useAddComment } from "@/lib/hooks/useAddComment";
 
 interface TaskDetailsDialogProps {
   isOpen: boolean;
@@ -28,7 +31,9 @@ export const TaskDetailsDialog = ({
   const { data, isLoading, error } = useTask(taskId ?? "");
   const task = data?.task;
   const { user: currentUser } = useAuth();
-
+  const addCommentMutation = useAddComment();
+  const { data: commentsResponse, isLoading: commentsLoading } =
+    useTaskComments(taskId ?? "");
   const [commentText, setCommentText] = useState("");
   const [localComments, setLocalComments] = useState<
     Array<{ id: string; name: string; text: string; time: string }>
@@ -40,16 +45,21 @@ export const TaskDetailsDialog = ({
     e.preventDefault();
     if (!commentText.trim()) return;
 
-    setLocalComments((prev) => [
-      ...prev,
+    if (!taskId) return;
+
+    addCommentMutation.mutate(
       {
-        id: Date.now().toString(),
-        name: currentUser?.name || "You",
-        text: commentText.trim(),
-        time: "Just now",
+        taskId,
+        data: {
+          text: commentText.trim(),
+        },
       },
-    ]);
-    setCommentText("");
+      {
+        onSuccess: () => {
+          setCommentText("");
+        },
+      },
+    );
   };
 
   const getStatusBadge = (status?: string) => {
@@ -95,23 +105,13 @@ export const TaskDetailsDialog = ({
   };
 
   const allComments = [
-    ...(task?.comments?.map(
-      (
-        c: {
-          _id?: string;
-          text?: string;
-          content?: string;
-          user?: { name?: string };
-          createdAt?: string;
-        },
-        i: number,
-      ) => ({
-        id: c._id || i.toString(),
-        name: c.user?.name || "Team Member",
-        text: c.text || c.content || "",
-        time: c.createdAt ? formatDate(c.createdAt) : "recently",
-      }),
-    ) || []),
+    ...(commentsResponse?.comments?.map((comment: TaskComment) => ({
+      id: comment._id,
+      name: comment.userName,
+      text: comment.text,
+      time: formatDate(comment.createdAt),
+    })) || []),
+
     ...localComments,
   ];
 

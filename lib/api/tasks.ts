@@ -8,7 +8,11 @@ import type {
   UpdateTaskData,
   MessageResponse,
   UpdateTaskStatusData,
+  CommentsResponse,
+  AddCommentData,
+  AddCommentResponse,
 } from "../types/tasks";
+
 export const getTasks = async (
   params: GetTasksParams = {},
 ): Promise<TasksResponse> => {
@@ -45,4 +49,15 @@ export const updateTaskStatus = async (
   return api.patch<TaskResponse>(`/tasks/${id}/status`, data);
 };
 
+export const getTaskComments = async (
+  taskId: string,
+): Promise<CommentsResponse> => {
+  return api.get<CommentsResponse>(`/tasks/${taskId}/comments`);
+};
 
+export const addComment = async (
+  taskId: string,
+  data: AddCommentData,
+): Promise<AddCommentResponse> => {
+  return api.post<AddCommentResponse>(`/tasks/${taskId}/comments`, data);
+};

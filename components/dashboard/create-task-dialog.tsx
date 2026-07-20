@@ -11,10 +11,13 @@ import {
 import { useCreateTask } from "@/lib/hooks/useCreateTask";
 import { useUsers } from "@/lib/hooks/useUsers";
 import type { User } from "@/lib/types/users";
+import type { Task } from "@/lib/types/tasks";
+import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
 
 interface CreateTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  task?: Task | null;
 }
 
 const ALL_TAGS = [
@@ -190,6 +193,7 @@ const CustomSelect = ({
 export const CreateTaskDialog = ({
   isOpen,
   onClose,
+  task,
 }: CreateTaskDialogProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
@@ -210,7 +214,11 @@ export const CreateTaskDialog = ({
   });
 
   const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
   const { data: usersResponse, isLoading } = useUsers();
+
+  const isSubmitting =
+    createTaskMutation.isPending || updateTaskMutation.isPending;
 
   const statusValue = watch("status");
   const priorityValue = watch("priority");
@@ -227,6 +235,50 @@ export const CreateTaskDialog = ({
     { value: "medium", label: "Medium" },
     { value: "high", label: "High" },
   ];
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (task) {
+      reset({
+        title: task.title,
+        description: task.description || "",
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+        assignedTo:
+          typeof task.assignedTo === "string"
+            ? task.assignedTo
+            : task.assignedTo?._id || "",
+        tags: task.tags || [],
+      });
+      setSelectedTags(task.tags || []);
+    } else {
+      reset({
+        title: "",
+        description: "",
+        status: "todo",
+        priority: "medium",
+        dueDate: "",
+        assignedTo: "",
+        tags: [],
+      });
+      setSelectedTags([]);
+    }
+  }, [task, isOpen, reset]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   const assignedToOptions = useMemo(() => {
     const usersList = (usersResponse?.data ?? []) as User[];
@@ -253,6 +305,24 @@ export const CreateTaskDialog = ({
   };
 
   const onSubmit = (data: CreateTaskFormData) => {
+    if (task) {
+      updateTaskMutation.mutate(
+        {
+          id: task._id,
+          data,
+        },
+        {
+          onSuccess: () => {
+            reset();
+            setSelectedTags([]);
+            onClose();
+          },
+        },
+      );
+
+      return;
+    }
+
     createTaskMutation.mutate(data, {
       onSuccess: () => {
         reset();
@@ -261,7 +331,6 @@ export const CreateTaskDialog = ({
       },
     });
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -276,10 +345,12 @@ export const CreateTaskDialog = ({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-bold text-foreground">
-              Create New Task
+              {task ? "Edit Task" : "Create New Task"}
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Add a new task to your workspace
+              {task
+                ? "Update task information."
+                : "Create a new task for your team."}
             </p>
           </div>
           <button
@@ -435,10 +506,16 @@ export const CreateTaskDialog = ({
             </button>
             <button
               type="submit"
-              disabled={createTaskMutation.isPending}
-              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
+              disabled={isSubmitting}
+              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
             >
-              {createTaskMutation.isPending ? "Creating..." : "Create Task"}
+              {isSubmitting
+                ? task
+                  ? "Updating..."
+                  : "Creating..."
+                : task
+                  ? "Update Task"
+                  : "Create Task"}
             </button>
           </div>
         </form>

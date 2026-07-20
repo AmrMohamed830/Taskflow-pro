@@ -84,6 +84,7 @@ const ALL_TAGS = [
 export const Kanban = () => {
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<APITask | null>(null);
   const { data, isLoading, error } = useTasks();
 
   if (isLoading) {
@@ -132,6 +133,12 @@ export const Kanban = () => {
       activeTags.length === 0 ||
       task.tags.some((tag) => activeTags.includes(tag)),
   );
+
+  const handleEditTask = (task: Task) => {
+    const apiTask = apiTasks.find((t) => t._id === task.id) || null;
+    setSelectedTask(apiTask);
+    setIsCreateModalOpen(true);
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -186,6 +193,7 @@ export const Kanban = () => {
             <KanbanColumn
               column={column}
               tasks={filteredTasks.filter((t) => t.status === column.id)}
+              onEdit={handleEditTask}
             />
           </div>
         ))}
@@ -193,7 +201,11 @@ export const Kanban = () => {
 
       <CreateTaskDialog
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
       />
     </div>
   );
@@ -201,7 +213,7 @@ export const Kanban = () => {
 
 // --- Sub-components ---
 
-const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] }) => {
+const KanbanColumn = ({ column, tasks,onEdit }: { column: Column; tasks: Task[]; onEdit: (task: Task) => void; }) => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2 px-1">
@@ -216,7 +228,7 @@ const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] }) => {
 
       <div className="flex flex-col gap-4 min-h-[500px]">
         {tasks.length > 0 ? (
-          tasks.map((task) => <KanbanTask key={task.id} task={task} />)
+          tasks.map((task) => <KanbanTask key={task.id} task={task} onEdit={onEdit}/>)
         ) : (
           <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-border/40 rounded-2xl bg-secondary/5 transition-colors">
             <p className="text-sm font-medium text-muted-foreground/60">
@@ -229,7 +241,13 @@ const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] }) => {
   );
 };
 
-const KanbanTask = ({ task }: { task: Task }) => {
+const KanbanTask = ({
+  task,
+  onEdit,
+}: {
+  task: Task;
+  onEdit: (task: Task) => void;
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { mutate } = useUpdateTaskStatus();
@@ -266,7 +284,10 @@ const KanbanTask = ({ task }: { task: Task }) => {
                 <MenuOption
                   icon={<Edit2 className="h-4 w-4" />}
                   label="Edit Task"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onEdit(task);
+                  }}
                 />
                 <MenuOption
                   icon={<UserPlus className="h-4 w-4" />}

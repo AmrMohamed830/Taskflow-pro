@@ -13,8 +13,8 @@ export const useDeleteTask = () => {
       });
       toast.success("Task deleted successfully");
     },
-    onError: () => {
-      toast.error("Failed to delete task");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete task");
     },
   });
 };

@@ -16,8 +16,8 @@ export const useCreateTask = () => {
       toast.success("Task created successfully");
     },
 
-    onError: () => {
-      toast.error("Failed to create task");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create task");
     },
   });
 };

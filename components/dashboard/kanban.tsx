@@ -21,6 +21,7 @@ import type { TaskStatus, Task as APITask } from "@/lib/types/tasks";
 import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
 import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
 import { CreateTaskDialog } from "./create-task-dialog";
+import { TaskDetailsDialog } from "./TaskDetailsDialog";
 // --- Types ---
 
 interface Task {
@@ -31,7 +32,9 @@ interface Task {
   tags: string[];
   dueDate?: string;
   commentsCount?: number;
+  assigneeName: string;
   assigneeInitial: string;
+  assigneeAvatar?: string;
   priority?: "high" | "medium" | "low";
 }
 
@@ -85,6 +88,8 @@ export const Kanban = () => {
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<APITask | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
   const { data, isLoading, error } = useTasks();
 
   if (isLoading) {
@@ -116,9 +121,11 @@ export const Kanban = () => {
         })()
       : undefined,
     commentsCount: t.comments?.length || 0,
+    assigneeName: t.assignedTo?.name || "Unassigned",
     assigneeInitial: t.assignedTo?.name
       ? t.assignedTo.name.charAt(0).toUpperCase()
       : "?",
+    assigneeAvatar: (t.assignedTo as { avatar?: string })?.avatar,
     priority: t.priority,
   }));
 
@@ -138,6 +145,10 @@ export const Kanban = () => {
     const apiTask = apiTasks.find((t) => t._id === task.id) || null;
     setSelectedTask(apiTask);
     setIsCreateModalOpen(true);
+  };
+  const handleOpenTaskDetails = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setIsTaskDetailsOpen(true);
   };
 
   return (
@@ -194,6 +205,7 @@ export const Kanban = () => {
               column={column}
               tasks={filteredTasks.filter((t) => t.status === column.id)}
               onEdit={handleEditTask}
+              onOpen={handleOpenTaskDetails}
             />
           </div>
         ))}
@@ -207,13 +219,32 @@ export const Kanban = () => {
         }}
         task={selectedTask}
       />
+
+      <TaskDetailsDialog
+        isOpen={isTaskDetailsOpen}
+        onClose={() => {
+          setIsTaskDetailsOpen(false);
+          setSelectedTaskId(null);
+        }}
+        taskId={selectedTaskId}
+      />
     </div>
   );
 };
 
 // --- Sub-components ---
 
-const KanbanColumn = ({ column, tasks,onEdit }: { column: Column; tasks: Task[]; onEdit: (task: Task) => void; }) => {
+const KanbanColumn = ({
+  column,
+  tasks,
+  onEdit,
+  onOpen,
+}: {
+  column: Column;
+  tasks: Task[];
+  onEdit: (task: Task) => void;
+  onOpen: (taskId: string) => void;
+}) => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2 px-1">
@@ -228,7 +259,14 @@ const KanbanColumn = ({ column, tasks,onEdit }: { column: Column; tasks: Task[];
 
       <div className="flex flex-col gap-4 min-h-[500px]">
         {tasks.length > 0 ? (
-          tasks.map((task) => <KanbanTask key={task.id} task={task} onEdit={onEdit}/>)
+          tasks.map((task) => (
+            <KanbanTask
+              key={`${task.id}-${task.status}`}
+              task={task}
+              onEdit={onEdit}
+              onOpen={onOpen}
+            />
+          ))
         ) : (
           <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-border/40 rounded-2xl bg-secondary/5 transition-colors">
             <p className="text-sm font-medium text-muted-foreground/60">
@@ -244,17 +282,21 @@ const KanbanColumn = ({ column, tasks,onEdit }: { column: Column; tasks: Task[];
 const KanbanTask = ({
   task,
   onEdit,
+  onOpen,
 }: {
   task: Task;
   onEdit: (task: Task) => void;
+  onOpen: (taskId: string) => void;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { mutate } = useUpdateTaskStatus();
   const { mutate: deleteTask, isPending: isDeleting } = useDeleteTask();
+
   return (
     <div
-      className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 overflow-hidden
+      onClick={() => onOpen(task.id)}
+      className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 ${isMenuOpen ? "z-30" : "z-0"}
       ${task.priority === "high" ? "border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]" : "border-border"}`}
     >
       {/* Task Header */}
@@ -267,7 +309,10 @@ const KanbanTask = ({
         </div>
         <div className="relative">
           <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(!isMenuOpen);
+            }}
             className={`p-1.5 rounded-lg transition-all
               ${isMenuOpen ? "bg-brand text-black" : "bg-secondary/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
           >
@@ -278,9 +323,15 @@ const KanbanTask = ({
             <>
               <div
                 className="fixed inset-0 z-10"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMenuOpen(false);
+                }}
               />
-              <div className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+              >
                 <MenuOption
                   icon={<Edit2 className="h-4 w-4" />}
                   label="Edit Task"
@@ -301,14 +352,13 @@ const KanbanTask = ({
                     icon={<ArrowRight className="h-4 w-4" />}
                     label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
                     onClick={() => {
+                      setIsMenuOpen(false);
                       mutate({
                         id: task.id,
                         data: {
                           status: task.status === "todo" ? "doing" : "done",
                         },
                       });
-
-                      setIsMenuOpen(false);
                     }}
                   />
                 )}
@@ -338,8 +388,8 @@ const KanbanTask = ({
         <div className="flex flex-wrap gap-2 mb-5">
           {task.tags.map((tag, index) => (
             <span
-              key={`${tag}-${index}`}
-              className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider ${getTagStyle(tag)}`}
+              key={index}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${getTagStyle(tag)}`}
             >
               {tag}
             </span>
@@ -347,13 +397,11 @@ const KanbanTask = ({
         </div>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-auto">
+      {/* Task Footer */}
+      <div className="flex items-center justify-between pt-4 border-t border-border/40">
         <div className="flex items-center gap-4">
           {task.dueDate && (
-            <div
-              className={`flex items-center gap-1.5 text-[12px] font-bold ${task.priority === "high" ? "text-red-500" : "text-muted-foreground/60"}`}
-            >
+            <div className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground/60">
               <Calendar className="h-3.5 w-3.5" />
               {task.dueDate}
             </div>
@@ -365,17 +413,36 @@ const KanbanTask = ({
             </div>
           )}
         </div>
-        <div className="h-7 w-7 rounded-full bg-secondary-brand/20 border border-brand/20 text-brand flex items-center justify-center text-[11px] font-black shadow-sm shadow-brand/5">
-          {task.assigneeInitial}
+        <div className="h-7 w-7 rounded-full bg-secondary-brand/20 border border-brand/20 text-brand flex items-center justify-center text-[11px] font-black shadow-sm shadow-brand/5 overflow-hidden">
+          {task.assigneeAvatar ? (
+            task.assigneeAvatar.startsWith("http") || task.assigneeAvatar.startsWith("/") ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={task.assigneeAvatar}
+                alt={task.assigneeName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xs">{task.assigneeAvatar}</span>
+            )
+          ) : (
+            task.assigneeInitial
+          )}
         </div>
       </div>
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-100 flex items-center justify-center p-4"
+        >
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isDeleting) setIsDeleteModalOpen(false);
+            }}
           />
           <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-xl font-bold text-foreground mb-2">
@@ -449,10 +516,13 @@ const MenuOption = ({
   label: string;
   variant?: "default" | "danger";
   hasSubmenu?: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
 }) => (
   <button
-    onClick={onClick}
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick(e);
+    }}
     className={`flex items-center justify-between w-full px-4 py-2.5 text-[13px] font-semibold transition-colors
       ${variant === "danger" ? "text-red-500 hover:bg-red-500/10" : "text-foreground hover:bg-secondary/80"}`}
   >

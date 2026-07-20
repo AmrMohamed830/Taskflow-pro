@@ -56,6 +56,7 @@ const Navbar = () => {
     };
 
     const isLoggedIn = !!user;
+    const userAvatar = session?.user?.image || user?.avatar || user?.image;
 
     return (
         <nav className="border-b relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -92,10 +93,10 @@ const Navbar = () => {
                             </Link>
 
                             <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
-                                {user?.avatar ? (
+                                {userAvatar ? (
                                     <img
-                                        src={user.avatar}
-                                        alt={user.name}
+                                        src={userAvatar}
+                                        alt={user?.name || "User"}
                                         className="w-8 h-8 rounded-full object-cover border border-brand/20"
                                     />
                                 ) : (
@@ -165,11 +166,11 @@ const Navbar = () => {
                                         </Button>
                                     </Link>
                                     <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border">
-                                        {user?.avatar ? (
+                                        {userAvatar ? (
                                             <img
-                                                src={user.avatar}
+                                                src={userAvatar}
                                                 className="w-12 h-12 rounded-full object-cover"
-                                                alt={user.name}
+                                                alt={user?.name || "User"}
                                             />
                                         ) : (
                                             <div className="w-12 h-12 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xl">

@@ -81,7 +81,7 @@ const Sidebar = () => {
     };
 
     const userImage =
-        session?.user?.image ?? (user as { image?: string })?.image;
+        session?.user?.image || user?.avatar || user?.image;
 
     return (
         <>

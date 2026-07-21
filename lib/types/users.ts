@@ -30,3 +30,8 @@ export interface UpdateUserRoleResponse {
   user: User;
   message: string;
 }
+
+export interface DeleteUserResponse {
+  success: boolean;
+  message: string;
+}

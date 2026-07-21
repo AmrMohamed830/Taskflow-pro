@@ -16,11 +16,14 @@ import {
   ChevronDown,
   Check,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useUsers } from "@/lib/hooks/useUsers";
 import { useUpdateUserRole } from "@/lib/hooks/useUpdateUserRole";
 import type { User } from "@/lib/types/users";
 import { useDeleteUser } from "@/lib/hooks/useDeleteUser";
+import { useCreateUser } from "@/lib/hooks/useCreateUser";
 
 // --- Main Component ---
 
@@ -30,10 +33,18 @@ export const Users = () => {
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<"admin" | "user">("user");
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [newUserRole, setNewUserRole] = useState<"admin" | "user">("user");
+  const [isAddUserRoleOpen, setIsAddUserRoleOpen] = useState(false);
   const { data, isLoading, error } = useUsers();
   const users: User[] = data?.data ?? [];
   const { mutate: updateUserRole, isPending } = useUpdateUserRole();
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
+  const { mutate: createUser, isPending: isCreating } = useCreateUser();
   const stats = [
     {
       title: "Total Users",
@@ -113,7 +124,10 @@ export const Users = () => {
             Manage team members and their roles
           </p>
         </div>
-        <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-black font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto shadow-lg shadow-brand/10">
+        <button
+          onClick={() => setIsAddUserOpen(true)}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-black font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto shadow-lg shadow-brand/10 cursor-pointer"
+        >
           <UserPlus className="h-5 w-5" />
           Add User
         </button>
@@ -477,6 +491,221 @@ export const Users = () => {
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Add User Modal */}
+      {isAddUserOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => !isCreating && setIsAddUserOpen(false)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-6 z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-foreground">
+                  Add New User
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Add a new team member to your workspace.
+                </p>
+              </div>
+              <button
+                disabled={isCreating}
+                onClick={() => setIsAddUserOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+
+                createUser(
+                  {
+                    name: newUserName,
+                    email: newUserEmail,
+                    password: newUserPassword,
+                    role: newUserRole,
+                  },
+                  {
+                    onSuccess: () => {
+                      setNewUserName("");
+                      setNewUserEmail("");
+                      setNewUserPassword("");
+                      setNewUserRole("user");
+                      setIsAddUserOpen(false);
+                    },
+                  },
+                );
+              }}
+              className="flex flex-col gap-5"
+            >
+              {/* Name */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={isCreating}
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  disabled={isCreating}
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Password
+                </label>
+                <div className="relative w-full">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    disabled={isCreating}
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <button
+                    type="button"
+                    disabled={isCreating}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Role */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Role
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    disabled={isCreating}
+                    onClick={() => setIsAddUserRoleOpen(!isAddUserRoleOpen)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-brand ring-1 ring-brand/50 bg-secondary/20 hover:bg-secondary/30 text-foreground font-semibold focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="capitalize text-sm font-bold">
+                      {newUserRole === "admin" ? "Admin" : "User"}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                        isAddUserRoleOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isAddUserRoleOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsAddUserRoleOpen(false)}
+                      />
+                      <div className="absolute left-0 right-0 z-20 mt-1.5 rounded-xl border border-border bg-card shadow-2xl py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewUserRole("user");
+                            setIsAddUserRoleOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary/50 text-left ${
+                            newUserRole === "user"
+                              ? "bg-brand/10 text-brand"
+                              : "text-foreground"
+                          }`}
+                        >
+                          <span>User</span>
+                          {newUserRole === "user" && (
+                            <Check className="h-4 w-4 text-brand" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewUserRole("admin");
+                            setIsAddUserRoleOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary/50 text-left ${
+                            newUserRole === "admin"
+                              ? "bg-brand/10 text-brand"
+                              : "text-foreground"
+                          }`}
+                        >
+                          <span>Admin</span>
+                          {newUserRole === "admin" && (
+                            <Check className="h-4 w-4 text-brand" />
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+                <button
+                  type="button"
+                  disabled={isCreating}
+                  onClick={() => setIsAddUserOpen(false)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground bg-secondary/40 border border-border/50 hover:bg-secondary/60 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    isCreating ||
+                    !newUserName.trim() ||
+                    !newUserEmail.trim() ||
+                    !newUserPassword.trim()
+                  }
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isCreating ? "Adding..." : "Add User"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

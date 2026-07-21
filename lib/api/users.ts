@@ -3,6 +3,8 @@ import type {
   UsersResponse,
   UpdateUserRoleResponse,
   DeleteUserResponse,
+  CreateUserData,
+  CreateUserResponse,
 } from "../types/users";
 
 export const getUsers = async (): Promise<UsersResponse> => {
@@ -21,3 +23,8 @@ export const updateUserRole = async (
 export const deleteUser = async (id: string): Promise<DeleteUserResponse> => {
   return api.delete<DeleteUserResponse>(`/users/${id}`);
 };
+
+export const createUser = async (data: CreateUserData): Promise<CreateUserResponse> => {
+  return api.post<CreateUserResponse>("/users", data);
+};
+

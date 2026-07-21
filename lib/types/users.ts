@@ -35,3 +35,16 @@ export interface DeleteUserResponse {
   success: boolean;
   message: string;
 }
+
+export interface CreateUserData {
+  name: string;
+  email: string;
+  password: string;
+  role: "admin" | "user";
+}
+
+export interface CreateUserResponse {
+  success: boolean;
+  user: User;
+  message: string;
+}

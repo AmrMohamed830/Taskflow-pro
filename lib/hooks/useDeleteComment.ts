@@ -18,6 +18,12 @@ export const useDeleteComment = () => {
       queryClient.invalidateQueries({
         queryKey: ["task-comments", variables.taskId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["task", variables.taskId],
+      });
 
       toast.success("Comment deleted successfully");
     },

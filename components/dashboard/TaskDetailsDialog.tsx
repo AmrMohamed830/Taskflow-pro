@@ -44,7 +44,7 @@ export const TaskDetailsDialog = ({
 
   const handleSendComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || addCommentMutation.isPending) return;
 
     if (!taskId) return;
 
@@ -267,11 +267,12 @@ export const TaskDetailsDialog = ({
                 ) : allComments.length > 0 ? (
                   <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
                     {allComments.map((comment, idx) => {
-                      const isOwner =
-                        !comment.userId ||
+                      const isAdmin = currentUser?.role === "admin";
+                      const isAuthor =
                         currentUser?.id === comment.userId ||
                         (currentUser as { id?: string; _id?: string })?._id ===
                           comment.userId;
+                      const canDelete = isAdmin || isAuthor || !comment.userId;
 
                       return (
                         <div
@@ -299,7 +300,7 @@ export const TaskDetailsDialog = ({
                             </div>
                           </div>
 
-                          {isOwner && (
+                          {canDelete && (
                             <button
                               type="button"
                               onClick={() => handleDeleteComment(comment.id)}
@@ -334,17 +335,27 @@ export const TaskDetailsDialog = ({
                     <textarea
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
+                      disabled={addCommentMutation.isPending}
                       placeholder="Write a comment..."
                       rows={2}
-                      className="w-full p-3 text-xs bg-[#11141a] border-2 border-[#00c985] focus:border-[#00c985] rounded-xl text-white placeholder:text-zinc-500 resize-none outline-none transition-all"
+                      className="w-full p-3 text-xs bg-[#11141a] border-2 border-[#00c985] focus:border-[#00c985] rounded-xl text-white placeholder:text-zinc-500 resize-none outline-none transition-all disabled:opacity-50"
                     />
                     <button
                       type="submit"
-                      disabled={!commentText.trim()}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#00c985] text-black font-bold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
+                      disabled={!commentText.trim() || addCommentMutation.isPending}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#00c985] text-black font-bold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      Send
+                      {addCommentMutation.isPending ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          Send
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Filter,
@@ -22,6 +22,19 @@ import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
 import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { TaskDetailsDialog } from "./TaskDetailsDialog";
+import {
+  DndContext,
+  closestCenter,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  KeyboardSensor,
+} from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import type { DragEndEvent } from "@dnd-kit/core";
+
 // --- Types ---
 
 interface Task {
@@ -91,6 +104,30 @@ export const Kanban = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
   const { data, isLoading, error } = useTasks();
+  const { mutate: updateTaskStatus } = useUpdateTaskStatus();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor),
+  );
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    if (active.id === over.id) return;
+
+    updateTaskStatus({
+      id: active.id as string,
+      data: {
+        status: over.id as "todo" | "doing" | "done",
+      },
+    });
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -152,83 +189,89 @@ export const Kanban = () => {
   };
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Kanban Board
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage and organize all team tasks
-          </p>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex flex-col gap-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Kanban Board
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage and organize all team tasks
+            </p>
+          </div>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
+          >
+            <Plus className="h-5 w-5" />
+            New Task
+          </button>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
-        >
-          <Plus className="h-5 w-5" />
-          New Task
-        </button>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 py-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
-          <Filter className="h-4 w-4" />
-          Filter:
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+            <Filter className="h-4 w-4" />
+            Filter:
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {ALL_TAGS.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all whitespace-nowrap flex items-center gap-2
+                  ${
+                    activeTags.includes(tag)
+                      ? "bg-brand/10 border-brand text-brand shadow-[0_0_10px_rgba(0,208,145,0.1)]"
+                      : "bg-secondary/20 border-border/50 text-muted-foreground hover:border-muted-foreground/30"
+                  }`}
+              >
+                <TagIcon className="h-3 w-3 opacity-60" />
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {ALL_TAGS.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all whitespace-nowrap flex items-center gap-2
-                ${
-                  activeTags.includes(tag)
-                    ? "bg-brand/10 border-brand text-brand shadow-[0_0_10px_rgba(0,208,145,0.1)]"
-                    : "bg-secondary/20 border-border/50 text-muted-foreground hover:border-muted-foreground/30"
-                }`}
-            >
-              <TagIcon className="h-3 w-3 opacity-60" />
-              {tag}
-            </button>
+
+        {/* Board Layout */}
+        <div className="grid grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-6 w-full min-w-0">
+          {COLUMNS.map((column) => (
+            <div key={column.id} className="flex flex-col gap-6 min-w-0">
+              <KanbanColumn
+                column={column}
+                tasks={filteredTasks.filter((t) => t.status === column.id)}
+                onEdit={handleEditTask}
+                onOpen={handleOpenTaskDetails}
+              />
+            </div>
           ))}
         </div>
+
+        <CreateTaskDialog
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setSelectedTask(null);
+          }}
+          task={selectedTask}
+        />
+
+        <TaskDetailsDialog
+          isOpen={isTaskDetailsOpen}
+          onClose={() => {
+            setIsTaskDetailsOpen(false);
+            setSelectedTaskId(null);
+          }}
+          taskId={selectedTaskId}
+        />
       </div>
-
-      {/* Board Layout */}
-      <div className="grid grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-6 w-full min-w-0">
-        {COLUMNS.map((column) => (
-          <div key={column.id} className="flex flex-col gap-6 min-w-0">
-            <KanbanColumn
-              column={column}
-              tasks={filteredTasks.filter((t) => t.status === column.id)}
-              onEdit={handleEditTask}
-              onOpen={handleOpenTaskDetails}
-            />
-          </div>
-        ))}
-      </div>
-
-      <CreateTaskDialog
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setSelectedTask(null);
-        }}
-        task={selectedTask}
-      />
-
-      <TaskDetailsDialog
-        isOpen={isTaskDetailsOpen}
-        onClose={() => {
-          setIsTaskDetailsOpen(false);
-          setSelectedTaskId(null);
-        }}
-        taskId={selectedTaskId}
-      />
-    </div>
+    </DndContext>
   );
 };
 
@@ -245,8 +288,12 @@ const KanbanColumn = ({
   onEdit: (task: Task) => void;
   onOpen: (taskId: string) => void;
 }) => {
+  const { setNodeRef } = useDroppable({
+    id: column.id,
+  });
+
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={setNodeRef} className="flex flex-col gap-6">
       <div className="flex items-center gap-2 px-1">
         <div
           className={`h-2.5 w-2.5 rounded-full ${column.color.replace("text-", "bg-")}`}
@@ -292,10 +339,38 @@ const KanbanTask = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { mutate } = useUpdateTaskStatus();
   const { mutate: deleteTask, isPending: isDeleting } = useDeleteTask();
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: task.id,
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+  };
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside);
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   return (
     <div
       onClick={() => onOpen(task.id)}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 ${isMenuOpen ? "z-30" : "z-0"}
       ${task.priority === "high" ? "border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]" : "border-border"}`}
     >
@@ -307,11 +382,12 @@ const KanbanTask = ({
             {task.title}
           </h4>
         </div>
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              setIsMenuOpen(!isMenuOpen);
+              setIsMenuOpen((prev) => !prev);
             }}
             className={`p-1.5 rounded-lg transition-all
               ${isMenuOpen ? "bg-brand text-black" : "bg-secondary/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
@@ -320,60 +396,54 @@ const KanbanTask = ({
           </button>
 
           {isMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
+            <div
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+            >
+              <MenuOption
+                icon={<Edit2 className="h-4 w-4" />}
+                label="Edit Task"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onEdit(task);
+                }}
+              />
+              <MenuOption
+                icon={<UserPlus className="h-4 w-4" />}
+                label="Assign To"
+                hasSubmenu
+                onClick={() => {
                   setIsMenuOpen(false);
                 }}
               />
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
-              >
+              <div className="h-px bg-border my-1.5" />
+              {task.status !== "done" && (
                 <MenuOption
-                  icon={<Edit2 className="h-4 w-4" />}
-                  label="Edit Task"
+                  icon={<ArrowRight className="h-4 w-4" />}
+                  label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
                   onClick={() => {
                     setIsMenuOpen(false);
-                    onEdit(task);
+                    mutate({
+                      id: task.id,
+                      data: {
+                        status: task.status === "todo" ? "doing" : "done",
+                      },
+                    });
                   }}
                 />
-                <MenuOption
-                  icon={<UserPlus className="h-4 w-4" />}
-                  label="Assign To"
-                  hasSubmenu
-                  onClick={() => {}}
-                />
-                <div className="h-px bg-border my-1.5" />
-                {task.status !== "done" && (
-                  <MenuOption
-                    icon={<ArrowRight className="h-4 w-4" />}
-                    label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      mutate({
-                        id: task.id,
-                        data: {
-                          status: task.status === "todo" ? "doing" : "done",
-                        },
-                      });
-                    }}
-                  />
-                )}
-                <div className="h-px bg-border my-1.5" />
-                <MenuOption
-                  icon={<Trash2 className="h-4 w-4" />}
-                  label="Delete Task"
-                  variant="danger"
-                  onClick={() => {
-                    setIsDeleteModalOpen(true);
-                    setIsMenuOpen(false);
-                  }}
-                />
-              </div>
-            </>
+              )}
+              <div className="h-px bg-border my-1.5" />
+              <MenuOption
+                icon={<Trash2 className="h-4 w-4" />}
+                label="Delete Task"
+                variant="danger"
+                onClick={() => {
+                  setIsDeleteModalOpen(true);
+                  setIsMenuOpen(false);
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -415,7 +485,8 @@ const KanbanTask = ({
         </div>
         <div className="h-7 w-7 rounded-full bg-secondary-brand/20 border border-brand/20 text-brand flex items-center justify-center text-[11px] font-black shadow-sm shadow-brand/5 overflow-hidden">
           {task.assigneeAvatar ? (
-            task.assigneeAvatar.startsWith("http") || task.assigneeAvatar.startsWith("/") ? (
+            task.assigneeAvatar.startsWith("http") ||
+            task.assigneeAvatar.startsWith("/") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={task.assigneeAvatar}
@@ -511,14 +582,20 @@ const MenuOption = ({
   variant = "default",
   hasSubmenu = false,
   onClick,
+  onPointerDown,
 }: {
   icon: React.ReactNode;
   label: string;
   variant?: "default" | "danger";
   hasSubmenu?: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void;
 }) => (
   <button
+    onPointerDown={(e) => {
+      e.stopPropagation();
+      onPointerDown?.(e);
+    }}
     onClick={(e) => {
       e.stopPropagation();
       onClick(e);

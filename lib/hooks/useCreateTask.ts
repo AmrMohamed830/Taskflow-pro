@@ -13,6 +13,10 @@ export const useCreateTask = () => {
         queryKey: ["tasks"],
       });
 
+    queryClient.invalidateQueries({
+      queryKey: ["dashboard-stats"],
+    });
+
       toast.success("Task created successfully");
     },
 

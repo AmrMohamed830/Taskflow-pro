@@ -1,14 +1,16 @@
 export interface User {
   _id: string;
+  id?: string;
   name: string;
   email: string;
   role: "admin" | "user";
-  avatar: string;
-  department: string;
-  isActive: boolean;
-  lastLogin: string;
-  createdAt: string;
-  updatedAt: string;
+  avatar?: string;
+  department?: string;
+  isActive?: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  tasksCount?: number;
 }
 
 export interface UsersResponse {
@@ -21,4 +23,10 @@ export interface UsersResponse {
     total: number;
     pages: number;
   };
+}
+
+export interface UpdateUserRoleResponse {
+  success: boolean;
+  user: User;
+  message: string;
 }

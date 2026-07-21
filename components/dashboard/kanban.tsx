@@ -29,11 +29,11 @@ import {
   useSensors,
   PointerSensor,
   KeyboardSensor,
+  DragOverlay,
 } from "@dnd-kit/core";
 import { useDroppable } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
-import type { DragEndEvent } from "@dnd-kit/core";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 
 // --- Types ---
 
@@ -103,6 +103,7 @@ export const Kanban = () => {
   const [selectedTask, setSelectedTask] = useState<APITask | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const { data, isLoading, error } = useTasks();
   const { mutate: updateTaskStatus } = useUpdateTaskStatus();
 
@@ -114,8 +115,14 @@ export const Kanban = () => {
     }),
     useSensor(KeyboardSensor),
   );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (!over) return;
 
@@ -127,6 +134,10 @@ export const Kanban = () => {
         status: over.id as "todo" | "doing" | "done",
       },
     });
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   if (isLoading) {
@@ -166,6 +177,10 @@ export const Kanban = () => {
     priority: t.priority,
   }));
 
+  const activeTask = activeId
+    ? tasks.find((task) => task.id === activeId) || null
+    : null;
+
   const toggleTag = (tag: string) => {
     setActiveTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
@@ -192,7 +207,9 @@ export const Kanban = () => {
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="flex flex-col gap-8">
         {/* Header */}
@@ -271,6 +288,15 @@ export const Kanban = () => {
           taskId={selectedTaskId}
         />
       </div>
+
+      <DragOverlay
+        dropAnimation={{
+          duration: 250,
+          easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+        }}
+      >
+        {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
+      </DragOverlay>
     </DndContext>
   );
 };
@@ -335,18 +361,41 @@ const KanbanTask = ({
   onEdit: (task: Task) => void;
   onOpen: (taskId: string) => void;
 }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: task.id,
+  });
+
+  return (
+    <div ref={setNodeRef} {...attributes} {...listeners} className="w-full">
+      <TaskCard
+        task={task}
+        onEdit={onEdit}
+        onOpen={onOpen}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+};
+
+interface TaskCardProps {
+  task: Task;
+  onEdit?: (task: Task) => void;
+  onOpen?: (taskId: string) => void;
+  isOverlay?: boolean;
+  isDragging?: boolean;
+}
+
+const TaskCard = ({
+  task,
+  onEdit,
+  onOpen,
+  isOverlay = false,
+  isDragging = false,
+}: TaskCardProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { mutate } = useUpdateTaskStatus();
   const { mutate: deleteTask, isPending: isDeleting } = useDeleteTask();
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: task.id,
-  });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-  };
-
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -364,88 +413,116 @@ const KanbanTask = ({
     };
   }, [isMenuOpen]);
 
+  if (isDragging) {
+    return (
+      <div className="relative p-5 rounded-2xl border-2 border-dashed border-brand/40 bg-brand/5 opacity-40 w-full min-w-0 min-h-[140px] pointer-events-none select-none transition-all">
+        <div className="flex items-center gap-2 opacity-50">
+          <GripVertical className="h-4 w-4 text-brand" />
+          <span className="text-xs font-bold text-brand truncate">
+            {task.title}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const containerClasses = isOverlay
+    ? "relative p-5 rounded-2xl border border-brand/40 bg-card/95 backdrop-blur-md shadow-2xl ring-2 ring-brand/30 rotate-2 scale-[1.02] cursor-grabbing w-full min-w-0 select-none"
+    : `group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 ${
+        isMenuOpen ? "z-30" : "z-0"
+      } ${
+        task.priority === "high"
+          ? "border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]"
+          : "border-border"
+      }`;
+
   return (
     <div
-      onClick={() => onOpen(task.id)}
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`group relative p-5 rounded-2xl border bg-card/40 backdrop-blur-sm hover:border-brand/40 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 ${isMenuOpen ? "z-30" : "z-0"}
-      ${task.priority === "high" ? "border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]" : "border-border"}`}
+      onClick={() => {
+        if (!isOverlay && onOpen) onOpen(task.id);
+      }}
+      className={containerClasses}
     >
       {/* Task Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <GripVertical className="h-4 w-4 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          <GripVertical
+            className={`h-4 w-4 shrink-0 transition-opacity ${
+              isOverlay
+                ? "text-brand opacity-100"
+                : "text-muted-foreground/40 opacity-0 group-hover:opacity-100"
+            }`}
+          />
           <h4 className="text-[15px] font-bold text-foreground leading-tight truncate">
             {task.title}
           </h4>
         </div>
-        <div className="relative" ref={menuRef}>
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMenuOpen((prev) => !prev);
-            }}
-            className={`p-1.5 rounded-lg transition-all
-              ${isMenuOpen ? "bg-brand text-black" : "bg-secondary/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-
-          {isMenuOpen && (
-            <div
+        {!isOverlay && (
+          <div className="relative" ref={menuRef}>
+            <button
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen((prev) => !prev);
+              }}
+              className={`p-1.5 rounded-lg transition-all
+                ${isMenuOpen ? "bg-brand text-black" : "bg-secondary/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
             >
-              <MenuOption
-                icon={<Edit2 className="h-4 w-4" />}
-                label="Edit Task"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  onEdit(task);
-                }}
-              />
-              <MenuOption
-                icon={<UserPlus className="h-4 w-4" />}
-                label="Assign To"
-                hasSubmenu
-                onClick={() => {
-                  setIsMenuOpen(false);
-                }}
-              />
-              <div className="h-px bg-border my-1.5" />
-              {task.status !== "done" && (
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+
+            {isMenuOpen && (
+              <div
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+              >
                 <MenuOption
-                  icon={<ArrowRight className="h-4 w-4" />}
-                  label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
+                  icon={<Edit2 className="h-4 w-4" />}
+                  label="Edit Task"
                   onClick={() => {
                     setIsMenuOpen(false);
-                    mutate({
-                      id: task.id,
-                      data: {
-                        status: task.status === "todo" ? "doing" : "done",
-                      },
-                    });
+                    onEdit?.(task);
                   }}
                 />
-              )}
-              <div className="h-px bg-border my-1.5" />
-              <MenuOption
-                icon={<Trash2 className="h-4 w-4" />}
-                label="Delete Task"
-                variant="danger"
-                onClick={() => {
-                  setIsDeleteModalOpen(true);
-                  setIsMenuOpen(false);
-                }}
-              />
-            </div>
-          )}
-        </div>
+                <MenuOption
+                  icon={<UserPlus className="h-4 w-4" />}
+                  label="Assign To"
+                  hasSubmenu
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                  }}
+                />
+                <div className="h-px bg-border my-1.5" />
+                {task.status !== "done" && (
+                  <MenuOption
+                    icon={<ArrowRight className="h-4 w-4" />}
+                    label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      mutate({
+                        id: task.id,
+                        data: {
+                          status: task.status === "todo" ? "doing" : "done",
+                        },
+                      });
+                    }}
+                  />
+                )}
+                <div className="h-px bg-border my-1.5" />
+                <MenuOption
+                  icon={<Trash2 className="h-4 w-4" />}
+                  label="Delete Task"
+                  variant="danger"
+                  onClick={() => {
+                    setIsDeleteModalOpen(true);
+                    setIsMenuOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Description */}
@@ -503,7 +580,7 @@ const KanbanTask = ({
       </div>
 
       {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
+      {isDeleteModalOpen && !isOverlay && (
         <div
           onClick={(e) => e.stopPropagation()}
           className="fixed inset-0 z-100 flex items-center justify-center p-4"

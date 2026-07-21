@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Users as UsersIcon,
   UserPlus,
@@ -18,12 +18,14 @@ import {
   X,
   Eye,
   EyeOff,
+  Search,
+  Filter,
 } from "lucide-react";
 import { useUsers } from "@/lib/hooks/useUsers";
-import { useUpdateUserRole } from "@/lib/hooks/useUpdateUserRole";
 import type { User } from "@/lib/types/users";
 import { useDeleteUser } from "@/lib/hooks/useDeleteUser";
 import { useCreateUser } from "@/lib/hooks/useCreateUser";
+import { useUpdateUser } from "@/lib/hooks/useUpdateUser";
 
 // --- Main Component ---
 
@@ -31,8 +33,18 @@ export const Users = () => {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+
+  // Edit User Form State
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [selectedRole, setSelectedRole] = useState<"admin" | "user">("user");
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
+
+  // Add User Form State
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -40,38 +52,52 @@ export const Users = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [newUserRole, setNewUserRole] = useState<"admin" | "user">("user");
   const [isAddUserRoleOpen, setIsAddUserRoleOpen] = useState(false);
+
+  // Hooks
   const { data, isLoading, error } = useUsers();
   const users: User[] = data?.data ?? [];
-  const { mutate: updateUserRole, isPending } = useUpdateUserRole();
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
   const { mutate: createUser, isPending: isCreating } = useCreateUser();
+  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
+
+  // Filtered Users
+  const filteredUsers = useMemo(() => {
+    return users.filter((u: User) => {
+      const matchesSearch =
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesRole = roleFilter === "all" || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchQuery, roleFilter]);
+
   const stats = [
     {
       title: "Total Users",
       value: users.length,
       icon: <UsersIcon className="h-5 w-5" />,
       color: "text-brand",
-      bg: "bg-brand/10",
+      bg: "bg-brand/10 border-brand/20",
     },
     {
       title: "Admins",
       value: users.filter((u: User) => u.role === "admin").length,
       icon: <ShieldCheck className="h-5 w-5" />,
       color: "text-orange-500",
-      bg: "bg-orange-500/10",
+      bg: "bg-orange-500/10 border-orange-500/20",
     },
     {
       title: "Team Members",
       value: users.filter((u: User) => u.role === "user").length,
       icon: <UserCircle className="h-5 w-5" />,
       color: "text-blue-500",
-      bg: "bg-blue-500/10",
+      bg: "bg-blue-500/10 border-blue-500/20",
     },
   ];
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-100">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin text-brand" />
           <p className="text-sm font-semibold">Loading users...</p>
@@ -82,7 +108,7 @@ export const Users = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-100">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3 text-red-500 p-6 rounded-2xl border border-red-500/20 bg-red-500/5">
           <ShieldAlert className="h-8 w-8" />
           <p className="text-sm font-bold">Failed to load users</p>
@@ -91,17 +117,33 @@ export const Users = () => {
     );
   }
 
-  const handleUpdateUser = (id: string, role: "admin" | "user") => {
-    updateUserRole(
+  const handleOpenEditModal = (user: User) => {
+    setEditingUser(user);
+    setName(user.name || "");
+    setEmail(user.email || "");
+    setSelectedRole(user.role || "user");
+    setOpenDropdownId(null);
+  };
+
+  const handleUpdateUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const id = editingUser._id || editingUser.id || "";
+    updateUser(
       {
         id,
-        role,
+        data: {
+          name: name.trim(),
+          email: email.trim(),
+          role: selectedRole,
+        },
       },
       {
         onSuccess: () => {
           setEditingUser(null);
         },
-      },
+      }
     );
   };
 
@@ -112,21 +154,22 @@ export const Users = () => {
       },
     });
   };
+
   return (
     <div className="flex flex-col gap-8 relative">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             User Management
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage team members and their roles
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage workspace members, update full profile info, and assign permissions.
           </p>
         </div>
         <button
           onClick={() => setIsAddUserOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-black font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto shadow-lg shadow-brand/10 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand text-black font-bold rounded-xl hover:opacity-90 transition-all w-full sm:w-auto shadow-lg shadow-brand/10 cursor-pointer"
         >
           <UserPlus className="h-5 w-5" />
           Add User
@@ -138,13 +181,13 @@ export const Users = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="p-6 rounded-2xl border border-border bg-card/40 backdrop-blur-sm flex flex-col gap-4"
+            className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur-sm flex flex-col gap-4 shadow-xs"
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-muted-foreground">
                 {stat.title}
               </span>
-              <div className={`p-2 rounded-xl ${stat.bg} ${stat.color}`}>
+              <div className={`p-2.5 rounded-xl border ${stat.bg} ${stat.color}`}>
                 {stat.icon}
               </div>
             </div>
@@ -155,16 +198,58 @@ export const Users = () => {
         ))}
       </div>
 
-      {/* Users Table Section */}
-      <div className="flex flex-col gap-4 p-6 rounded-2xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">All Users</h2>
-          <p className="text-sm text-muted-foreground">
-            A list of all users in your workspace including their name, email,
-            and role.
-          </p>
+      {/* Users Section */}
+      <div className="flex flex-col gap-6 p-6 rounded-2xl border border-border bg-card/60 backdrop-blur-sm overflow-hidden shadow-xs">
+        {/* Controls: Search & Filter */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">All Workspace Users</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Showing {filteredUsers.length} of {users.length} registered members
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search name or email..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-secondary/20 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 placeholder:text-muted-foreground/60 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Role Filter Buttons */}
+            <div className="flex items-center p-1 rounded-xl bg-secondary/30 border border-border/60 w-full sm:w-auto">
+              {(["all", "admin", "user"] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRoleFilter(r)}
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                    roleFilter === r
+                      ? "bg-brand text-black shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r === "all" ? "All" : r}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
+        {/* Users Table */}
         <div className="overflow-x-auto -mx-6 px-6">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
@@ -172,174 +257,199 @@ export const Users = () => {
                 <th className="py-4 px-2">User</th>
                 <th className="py-4 px-2">Email</th>
                 <th className="py-4 px-2">Role</th>
-                <th className="py-4 px-2">Tasks</th>
+                <th className="py-4 px-2">Assigned Tasks</th>
                 <th className="py-4 px-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user: User) => {
-                const userId = user._id || user.id || "";
-                return (
-                  <tr
-                    key={userId}
-                    className="group border-b border-border/30 hover:bg-secondary/20 transition-colors"
-                  >
-                    <td className="py-4 px-2">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-bold text-xs">
-                          {user.name ? user.name[0].toUpperCase() : "U"}
-                        </div>
-                        <span className="font-bold text-sm text-foreground">
-                          {user.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-4 w-4 opacity-40" />
-                        <span className="text-sm font-medium">
-                          {user.email}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider
-                        ${
-                          user.role === "admin"
-                            ? "bg-brand/10 text-brand border border-brand/20"
-                            : "bg-secondary/50 text-muted-foreground border border-border/50"
-                        }`}
-                      >
-                        {user.role === "admin" && (
-                          <ShieldCheck className="h-3 w-3" />
-                        )}
-                        {user.role === "admin" ? "Admin" : "User"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <ListTodo className="h-4 w-4 opacity-40" />
-                        <span className="text-sm font-semibold">
-                          {user.tasksCount ?? 0} assigned
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-2 text-right relative">
-                      <button
-                        onClick={() =>
-                          setOpenDropdownId(
-                            openDropdownId === userId ? null : userId,
-                          )
-                        }
-                        className={`p-2 rounded-lg transition-all ${openDropdownId === userId ? "bg-brand text-black" : "text-muted-foreground hover:bg-secondary"}`}
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </button>
-
-                      {openDropdownId === userId && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => setOpenDropdownId(null)}
-                          />
-                          <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                            <button
-                              onClick={() => {
-                                setEditingUser(user);
-                                setSelectedRole(user.role);
-                                setOpenDropdownId(null);
-                              }}
-                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
-                            >
-                              <Edit2 className="h-4 w-4 text-muted-foreground" />
-                              Edit
-                            </button>
-                            <div className="h-px bg-border my-1" />
-                            <button
-                              onClick={() => {
-                                setDeletingUser(user);
-                                setOpenDropdownId(null);
-                              }}
-                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </button>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user: User) => {
+                  const userId = user._id || user.id || "";
+                  return (
+                    <tr
+                      key={userId}
+                      className="group border-b border-border/30 hover:bg-secondary/20 transition-colors"
+                    >
+                      <td className="py-4 px-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-bold text-xs shrink-0">
+                            {user.name ? user.name[0].toUpperCase() : "U"}
                           </div>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                          <span className="font-bold text-sm text-foreground">
+                            {user.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-2">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="h-4 w-4 opacity-40 shrink-0" />
+                          <span className="text-sm font-medium">
+                            {user.email}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider
+                          ${
+                            user.role === "admin"
+                              ? "bg-orange-500/10 text-orange-500 border border-orange-500/20"
+                              : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                          }`}
+                        >
+                          {user.role === "admin" ? (
+                            <ShieldCheck className="h-3 w-3" />
+                          ) : (
+                            <UserCircle className="h-3 w-3" />
+                          )}
+                          {user.role === "admin" ? "Admin" : "User"}
+                        </span>
+                      </td>
+                      <td className="py-4 px-2">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <ListTodo className="h-4 w-4 opacity-40 shrink-0" />
+                          <span className="text-sm font-semibold">
+                            {user.tasksCount ?? 0} tasks
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-2 text-right relative">
+                        <button
+                          onClick={() =>
+                            setOpenDropdownId(
+                              openDropdownId === userId ? null : userId
+                            )
+                          }
+                          className={`p-2 rounded-lg transition-all cursor-pointer ${
+                            openDropdownId === userId
+                              ? "bg-brand text-black"
+                              : "text-muted-foreground hover:bg-secondary"
+                          }`}
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </button>
+
+                        {openDropdownId === userId && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setOpenDropdownId(null)}
+                            />
+                            <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                              <button
+                                onClick={() => handleOpenEditModal(user)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="h-4 w-4 text-muted-foreground" />
+                                Edit Full User
+                              </button>
+                              <div className="h-px bg-border my-1" />
+                              <button
+                                onClick={() => {
+                                  setDeletingUser(user);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete User
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <UsersIcon className="h-8 w-8 opacity-30" />
+                      <p className="font-semibold text-sm">No matching users found</p>
+                      <p className="text-xs">Try adjusting your search query or role filter.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit User Modal (Full User Update: Name, Email, Role) */}
       {editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => !isPending && setEditingUser(null)}
+            onClick={() => !isUpdating && setEditingUser(null)}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 z-10">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-foreground">
-                  Edit User Role
+                  Edit User Profile
                 </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Update role for{" "}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Update full information for{" "}
                   <span className="font-semibold text-foreground">
                     {editingUser.name}
                   </span>
                 </p>
               </div>
               <button
-                disabled={isPending}
+                disabled={isUpdating}
                 onClick={() => setEditingUser(null)}
-                className="p-2 rounded-lg hover:bg-secondary text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground disabled:opacity-50 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex flex-col gap-5">
+            <form onSubmit={handleUpdateUserSubmit} className="flex flex-col gap-5">
+              {/* Name Field */}
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-muted-foreground">
-                  Name
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Full Name
                 </label>
                 <input
                   type="text"
-                  disabled
-                  defaultValue={editingUser.name}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/10 text-muted-foreground font-medium opacity-70 cursor-not-allowed"
+                  required
+                  disabled={isUpdating}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="User Name"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all disabled:opacity-50"
                 />
               </div>
+
+              {/* Email Field */}
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-muted-foreground">
-                  Email
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Email Address
                 </label>
                 <input
                   type="email"
-                  disabled
-                  defaultValue={editingUser.email}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/10 text-muted-foreground font-medium opacity-70 cursor-not-allowed"
+                  required
+                  disabled={isUpdating}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all disabled:opacity-50"
                 />
               </div>
+
+              {/* Role Dropdown */}
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-muted-foreground">
-                  Role
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Role & Permissions
                 </label>
                 <div className="relative">
                   <button
                     type="button"
-                    disabled={isPending}
+                    disabled={isUpdating}
                     onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-secondary/20 hover:bg-secondary/30 text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-secondary/20 hover:bg-secondary/30 text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2.5">
                       {selectedRole === "admin" ? (
@@ -384,7 +494,7 @@ export const Users = () => {
                             <div className="flex flex-col">
                               <span className="font-bold text-xs">Admin</span>
                               <span className="text-[10px] text-muted-foreground font-normal">
-                                Full workspace access
+                                Full workspace management
                               </span>
                             </div>
                           </div>
@@ -425,42 +535,41 @@ export const Users = () => {
                   )}
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center justify-end gap-3 mt-8">
-              <button
-                disabled={isPending}
-                onClick={() => setEditingUser(null)}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground hover:bg-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={isPending || selectedRole === editingUser.role}
-                onClick={() =>
-                  handleUpdateUser(
-                    editingUser._id || editingUser.id || "",
-                    selectedRole,
-                  )
-                }
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50"
-              >
-                {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isPending ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
+              {/* Form Buttons */}
+              <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+                <button
+                  type="button"
+                  disabled={isUpdating}
+                  onClick={() => setEditingUser(null)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground bg-secondary/40 border border-border/50 hover:bg-secondary/60 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    isUpdating || !name.trim() || !email.trim()
+                  }
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isUpdating ? "Saving Changes..." : "Save User"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* Delete User Modal */}
       {deletingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => !isDeleting && setDeletingUser(null)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 z-10">
             <h3 className="text-xl font-bold text-foreground mb-2">
               Delete User
             </h3>
@@ -476,7 +585,7 @@ export const Users = () => {
               <button
                 disabled={isDeleting}
                 onClick={() => setDeletingUser(null)}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground border border-brand hover:bg-brand/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground border border-border bg-secondary/40 hover:bg-secondary/60 transition-all disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>
@@ -485,7 +594,7 @@ export const Users = () => {
                 onClick={() =>
                   handleDeleteUser(deletingUser._id || deletingUser.id || "")
                 }
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isDeleting ? "Deleting..." : "Delete"}
@@ -494,18 +603,16 @@ export const Users = () => {
           </div>
         </div>
       )}
+
       {/* Add User Modal */}
       {isAddUserOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
             onClick={() => !isCreating && setIsAddUserOpen(false)}
           />
 
-          {/* Modal Content */}
           <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-6 z-10">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-foreground">
@@ -518,13 +625,12 @@ export const Users = () => {
               <button
                 disabled={isCreating}
                 onClick={() => setIsAddUserOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all cursor-pointer disabled:opacity-50"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Form */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -544,7 +650,7 @@ export const Users = () => {
                       setNewUserRole("user");
                       setIsAddUserOpen(false);
                     },
-                  },
+                  }
                 );
               }}
               className="flex flex-col gap-5"
@@ -561,7 +667,7 @@ export const Users = () => {
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50"
                 />
               </div>
 
@@ -577,7 +683,7 @@ export const Users = () => {
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   placeholder="john@example.com"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50"
                 />
               </div>
 
@@ -595,13 +701,13 @@ export const Users = () => {
                     value={newUserPassword}
                     onChange={(e) => setNewUserPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all placeholder:text-muted-foreground/50 disabled:opacity-50"
                   />
                   <button
                     type="button"
                     disabled={isCreating}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -622,7 +728,7 @@ export const Users = () => {
                     type="button"
                     disabled={isCreating}
                     onClick={() => setIsAddUserRoleOpen(!isAddUserRoleOpen)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-brand ring-1 ring-brand/50 bg-secondary/20 hover:bg-secondary/30 text-foreground font-semibold focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-brand ring-1 ring-brand/50 bg-secondary/20 hover:bg-secondary/30 text-foreground font-semibold focus:outline-none transition-all cursor-pointer disabled:opacity-50"
                   >
                     <span className="capitalize text-sm font-bold">
                       {newUserRole === "admin" ? "Admin" : "User"}
@@ -687,7 +793,7 @@ export const Users = () => {
                   type="button"
                   disabled={isCreating}
                   onClick={() => setIsAddUserOpen(false)}
-                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground bg-secondary/40 border border-border/50 hover:bg-secondary/60 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground bg-secondary/40 border border-border/50 hover:bg-secondary/60 transition-all cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -699,7 +805,7 @@ export const Users = () => {
                     !newUserEmail.trim() ||
                     !newUserPassword.trim()
                   }
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isCreating ? "Adding..." : "Add User"}

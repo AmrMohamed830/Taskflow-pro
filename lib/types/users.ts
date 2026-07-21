@@ -48,3 +48,15 @@ export interface CreateUserResponse {
   user: User;
   message: string;
 }
+
+export interface UpdateUserData {
+  name: string;
+  email: string;
+  role: "admin" | "user";
+}
+
+export interface UpdateUserResponse {
+  success: boolean;
+  user: User;
+  message: string;
+}

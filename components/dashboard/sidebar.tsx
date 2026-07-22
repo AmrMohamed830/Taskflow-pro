@@ -8,7 +8,6 @@ import {
     Users,
     Settings,
     LogOut,
-    Menu,
     X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -57,7 +56,7 @@ const Sidebar = () => {
         ...(user?.role === "admin"
             ? [{ name: "Users", icon: Users, href: "/dashboard/users" }]
             : []),
-        { name: "Settings", icon: Settings, href: "/dashboard/settings" },
+        { name: "Settings", icon: Settings, href: "/dashboard/profile" },
     ];
 
     const handleLogout = async () => {
@@ -81,7 +80,7 @@ const Sidebar = () => {
     };
 
     const userImage =
-        session?.user?.image || user?.avatar || user?.image;
+        session?.user?.image || user?.avatar;
 
     return (
         <>

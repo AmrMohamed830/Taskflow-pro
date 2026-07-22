@@ -17,9 +17,10 @@ import {
   ListTodo,
   Tag as TagIcon,
   Check,
+  CheckSquare,
 } from "lucide-react";
 import { useTasks } from "@/lib/hooks/useTasks";
-import type { TaskStatus, Task as APITask } from "@/lib/types/tasks";
+import type { TaskStatus, Task as APITask, Subtask } from "@/lib/types/tasks";
 import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
 import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
 import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
@@ -57,6 +58,8 @@ interface Task {
   assigneeInitial: string;
   assigneeAvatar?: string;
   priority?: "high" | "medium" | "low";
+  createdById: string;
+  subtasks: Subtask[];
 }
 
 interface Column {
@@ -163,8 +166,6 @@ const KanbanSkeleton = () => {
 // --- Main Component ---
 
 export const Kanban = () => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [activeTag, setActiveTag] = useState<string>("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<APITask | null>(null);
@@ -247,6 +248,8 @@ export const Kanban = () => {
       : "?",
     assigneeAvatar: (t.assignedTo as { avatar?: string })?.avatar,
     priority: t.priority,
+    createdById: typeof t.createdBy === "string" ? t.createdBy : t.createdBy?._id || "",
+    subtasks: t.subtasks || [],
   }));
 
   const activeTask = activeId
@@ -286,15 +289,13 @@ export const Kanban = () => {
               Manage and organize all team tasks
             </p>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
-            >
-              <Plus className="h-5 w-5" />
-              New Task
-            </button>
-          )}
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
+          >
+            <Plus className="h-5 w-5" />
+            New Task
+          </button>
         </div>
 
         {/* Filters */}
@@ -473,6 +474,10 @@ const TaskCard = ({
   const { data: users } = useUsers();
   const { user: currentUser } = useAuth();
   const isAdmin = currentUser?.role === "admin";
+  const canEditOrDelete =
+    isAdmin ||
+    task.createdById === currentUser?.id ||
+    task.createdById === currentUser?._id;
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -538,7 +543,7 @@ const TaskCard = ({
             {task.title}
           </h4>
         </div>
-        {!isOverlay && (isAdmin || task.status !== "done") && (
+        {!isOverlay && (canEditOrDelete || task.status !== "done") && (
           <div className="relative" ref={menuRef}>
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -604,7 +609,7 @@ const TaskCard = ({
                   </>
                 ) : (
                   <>
-                    {isAdmin && (
+                    {canEditOrDelete && (
                       <MenuOption
                         icon={<Edit2 className="h-4 w-4" />}
                         label="Edit Task"
@@ -624,7 +629,7 @@ const TaskCard = ({
                         }}
                       />
                     )}
-                    {isAdmin && <div className="h-px bg-border my-1.5" />}
+                    {canEditOrDelete && <div className="h-px bg-border my-1.5" />}
                     {task.status !== "done" && (
                       <MenuOption
                         icon={<ArrowRight className="h-4 w-4" />}
@@ -640,7 +645,7 @@ const TaskCard = ({
                         }}
                       />
                     )}
-                    {isAdmin && (
+                    {canEditOrDelete && (
                       <>
                         <div className="h-px bg-border my-1.5" />
                         <MenuOption
@@ -694,6 +699,15 @@ const TaskCard = ({
             <div className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground/60">
               <MessageSquare className="h-3.5 w-3.5" />
               {task.commentsCount}
+            </div>
+          )}
+          {task.subtasks && task.subtasks.length > 0 && (
+            <div
+              className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground/60"
+              title={`Checklist progress: ${task.subtasks.filter((s) => s.isCompleted).length}/${task.subtasks.length}`}
+            >
+              <CheckSquare className="h-3.5 w-3.5 text-brand" />
+              {task.subtasks.filter((s) => s.isCompleted).length}/{task.subtasks.length}
             </div>
           )}
         </div>

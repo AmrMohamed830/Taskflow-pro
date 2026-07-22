@@ -9,6 +9,10 @@ import { useChangePassword } from "@/lib/hooks/useChangePassword";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
+const AVATAR_OPTIONS = [
+  "💻", "🎨", "🚀", "🦊", "🦁", "🐼", "🦄", "🎯", "🤖", "🍕", "🎸", "⛰️"
+];
+
 // --- Sub-components ---
 
 const SettingsSection = ({
@@ -206,7 +210,7 @@ const ChangePasswordDialog = ({
 // --- Main Component ---
 
 export const Settings = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const userId = user?.id || user?._id || "";
   const { data: userDataResponse } = useUser(userId);
   const { mutate: updateUser, isPending } = useUpdateUser();
@@ -215,13 +219,17 @@ export const Settings = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "user">("user");
+  const [department, setDepartment] = useState("");
+  const [avatar, setAvatar] = useState("💻");
 
   useEffect(() => {
     if (currentUser) {
       setTimeout(() => {
-        setName(currentUser.name);
-        setEmail(currentUser.email);
-        setRole(currentUser.role);
+        setName(currentUser.name || "");
+        setEmail(currentUser.email || "");
+        setRole(currentUser.role || "user");
+        setDepartment(currentUser.department || "");
+        setAvatar(currentUser.avatar || "💻");
       }, 0);
     }
   }, [currentUser]);
@@ -243,11 +251,16 @@ export const Settings = () => {
           name,
           email,
           role,
+          department,
+          avatar,
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (response) => {
           toast.success("Profile updated successfully");
+          if (response?.user) {
+            setUser(response.user);
+          }
         },
       },
     );
@@ -382,22 +395,34 @@ export const Settings = () => {
         title="Profile"
         description="Your personal information"
       >
-        <div className="flex items-center gap-4 py-2">
-          <div className="h-16 w-16 rounded-full overflow-hidden bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-black text-xl shadow-lg shadow-brand/10 shrink-0">
-            {currentUser?.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={currentUser.avatar}
-                alt={name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              name ? name.charAt(0).toUpperCase() : "U"
-            )}
+        <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
+          {/* Avatar selector/preview */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="h-16 w-16 rounded-full bg-brand/10 border-2 border-brand/20 flex items-center justify-center text-3xl shadow-lg shadow-brand/5 overflow-hidden select-none">
+              {avatar || "💻"}
+            </div>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Preview</span>
           </div>
-          <div>
-            <h4 className="text-base font-bold text-foreground">{name || "User"}</h4>
-            <p className="text-sm text-muted-foreground">{email || "Loading..."}</p>
+          
+          <div className="flex-1">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+              Choose Avatar Icon
+            </label>
+            <div className="flex flex-wrap gap-1.5 max-w-lg">
+              {AVATAR_OPTIONS.map((av) => (
+                <button
+                  key={av}
+                  type="button"
+                  onClick={() => setAvatar(av)}
+                  className={`h-8 w-8 text-sm rounded-lg flex items-center justify-center transition-all cursor-pointer select-none
+                    ${avatar === av 
+                      ? "bg-brand text-black scale-105 shadow-sm shadow-brand/15" 
+                      : "bg-secondary/40 text-foreground hover:bg-secondary/70 hover:scale-105"}`}
+                >
+                  {av}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -410,9 +435,24 @@ export const Settings = () => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all outline-none"
             />
           </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-muted-foreground">
+              Department
+            </label>
+            <input
+              type="text"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="e.g. Engineering, Design"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-bold text-muted-foreground">
               Email
@@ -421,7 +461,7 @@ export const Settings = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-brand/50 transition-all outline-none"
             />
           </div>
         </div>
@@ -430,7 +470,7 @@ export const Settings = () => {
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="px-6 py-2.5 bg-brand text-black font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-brand/20"
+            className="px-6 py-2.5 bg-brand text-black font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-brand/20 cursor-pointer"
           >
             {isPending ? "Saving..." : "Save Changes"}
           </button>

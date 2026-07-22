@@ -10,9 +10,12 @@ export const useUpdateTask = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateTaskData }) =>
       updateTask(id, data),
 
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["tasks"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["task", variables.id],
       });
 
       toast.success("Task updated successfully");

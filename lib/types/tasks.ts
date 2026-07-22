@@ -16,6 +16,12 @@ export interface TaskComment {
   createdAt: string;
 }
 
+export interface Subtask {
+  _id: string;
+  title: string;
+  isCompleted: boolean;
+}
+
 export interface Task {
   _id: string;
   title: string;
@@ -29,6 +35,7 @@ export interface Task {
 
   tags: string[];
   comments?: TaskComment[];
+  subtasks?: Subtask[];
 
   createdAt: string;
   updatedAt: string;
@@ -79,6 +86,7 @@ export interface UpdateTaskData {
   dueDate?: string;
   assignedTo?: string;
   tags?: string[];
+  subtasks?: Subtask[];
 }
 
 export interface MessageResponse {

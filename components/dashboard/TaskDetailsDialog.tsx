@@ -10,14 +10,16 @@ import {
   MessageSquare,
   AlertCircle,
   Send,
+  ListTodo,
+  Trash2,
 } from "lucide-react";
 import { useTask } from "@/lib/hooks/useTask";
 import { useAuth } from "@/lib/store/auth";
 import { useTaskComments } from "@/lib/hooks/useTaskComments";
-import type { TaskComment } from "@/lib/types/tasks";
+import type { TaskComment, Subtask } from "@/lib/types/tasks";
 import { useAddComment } from "@/lib/hooks/useAddComment";
-import { Trash2 } from "lucide-react";
 import { useDeleteComment } from "@/lib/hooks/useDeleteComment";
+import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
 
 interface TaskDetailsDialogProps {
   isOpen: boolean;
@@ -35,9 +37,64 @@ export const TaskDetailsDialog = ({
   const { user: currentUser } = useAuth();
   const addCommentMutation = useAddComment();
   const deleteCommentMutation = useDeleteComment();
+  const updateTaskMutation = useUpdateTask();
   const { data: commentsResponse, isLoading: commentsLoading } =
     useTaskComments(taskId ?? "");
   const [commentText, setCommentText] = useState("");
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+
+  const handleAddSubtask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubtaskTitle.trim() || !task) return;
+
+    const currentSubtasks = task.subtasks || [];
+    const newSubtask = {
+      _id: Math.random().toString(36).substr(2, 9),
+      title: newSubtaskTitle.trim(),
+      isCompleted: false,
+    };
+
+    updateTaskMutation.mutate({
+      id: task._id,
+      data: {
+        subtasks: [...currentSubtasks, newSubtask],
+      },
+    });
+    setNewSubtaskTitle("");
+  };
+
+  const handleToggleSubtask = (subtaskId: string, isCompleted: boolean) => {
+    if (!task) return;
+
+    const currentSubtasks = task.subtasks || [];
+    const updatedSubtasks = currentSubtasks.map((sub: Subtask) =>
+      sub._id === subtaskId ? { ...sub, isCompleted } : sub
+    );
+
+    updateTaskMutation.mutate({
+      id: task._id,
+      data: {
+        subtasks: updatedSubtasks,
+      },
+    });
+  };
+
+  const handleDeleteSubtask = (subtaskId: string) => {
+    if (!task) return;
+
+    const currentSubtasks = task.subtasks || [];
+    const updatedSubtasks = currentSubtasks.filter((sub: Subtask) => sub._id !== subtaskId);
+
+    updateTaskMutation.mutate({
+      id: task._id,
+      data: {
+        subtasks: updatedSubtasks,
+      },
+    });
+  };
+
+  const totalSubtasks = task?.subtasks?.length || 0;
+  const completedCount = task?.subtasks?.filter((sub: Subtask) => sub.isCompleted).length || 0;
  
 
   if (!isOpen) return null;
@@ -246,6 +303,90 @@ export const TaskDetailsDialog = ({
                     {formatDate(task.createdAt)}
                   </div>
                 </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[#232836] my-3" />
+
+              {/* Subtasks Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-bold text-white">
+                    <ListTodo className="w-4 h-4 text-[#00c985]" />
+                    Checklist ({completedCount}/{totalSubtasks})
+                  </div>
+                  {totalSubtasks > 0 && (
+                    <div className="text-xs text-zinc-400">
+                      {Math.round((completedCount / totalSubtasks) * 100)}% complete
+                    </div>
+                  )}
+                </div>
+
+                {/* Subtask Progress Bar */}
+                {totalSubtasks > 0 && (
+                  <div className="w-full bg-[#181d28] h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#00c985] h-full rounded-full transition-all duration-300"
+                      style={{ width: `${(completedCount / totalSubtasks) * 100}%` }}
+                    />
+                  </div>
+                )}
+
+                {/* Subtask Items List */}
+                <div className="space-y-2">
+                  {task.subtasks && task.subtasks.length > 0 ? (
+                    task.subtasks.map((subtask: Subtask) => (
+                      <div
+                        key={subtask._id}
+                        className="flex items-center justify-between gap-3 p-2 rounded-lg bg-[#181d28] hover:bg-[#1e2432] group transition-colors"
+                      >
+                        <label className="flex items-center gap-3 cursor-pointer min-w-0 flex-1">
+                          <input
+                            type="checkbox"
+                            checked={subtask.isCompleted}
+                            onChange={(e) => handleToggleSubtask(subtask._id, e.target.checked)}
+                            className="w-4 h-4 border border-[#2d3445] rounded bg-[#11141a] text-[#00c985] focus:ring-0 focus:ring-offset-0 accent-[#00c985] cursor-pointer"
+                          />
+                          <span
+                            className={`text-xs truncate ${
+                              subtask.isCompleted ? "text-zinc-500 line-through" : "text-zinc-200 font-medium"
+                            }`}
+                          >
+                            {subtask.title}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubtask(subtask._id)}
+                          className="text-zinc-500 hover:text-red-400 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+                          title="Delete checklist item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-zinc-500 italic py-1">No checklist items yet.</p>
+                  )}
+                </div>
+
+                {/* Add Subtask Input Form */}
+                <form onSubmit={handleAddSubtask} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Add checklist item..."
+                    className="flex-1 px-3 py-2 text-xs bg-[#181d28] border border-[#2d3445] focus:border-[#00c985] rounded-lg text-white placeholder:text-zinc-500 outline-none transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newSubtaskTitle.trim() || updateTaskMutation.isPending}
+                    className="px-3.5 py-2 bg-[#00c985] text-black font-bold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    Add
+                  </button>
+                </form>
               </div>
 
               {/* Divider */}

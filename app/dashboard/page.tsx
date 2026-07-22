@@ -166,15 +166,13 @@ export default function DashboardPage() {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
-          {user?.role === "admin" && (
-            <button
-              onClick={() => setIsCreateTaskOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-black font-semibold text-sm shadow-md hover:opacity-90 transition-all cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              Create Task
-            </button>
-          )}
+          <button
+            onClick={() => setIsCreateTaskOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-black font-semibold text-sm shadow-md hover:opacity-90 transition-all cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            Create Task
+          </button>
         </div>
       </div>
 
@@ -232,24 +230,44 @@ export default function DashboardPage() {
           iconBg="bg-emerald-500/10 border border-emerald-500/20"
         />
 
-        {/* Completion Rate with visual progress bar */}
-        <div className="p-6 rounded-xl border border-border bg-card flex flex-col justify-between gap-4 shadow-sm hover:border-border/80 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-muted-foreground">Completion Rate</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-              <TrendingUp className="h-5 w-5 text-purple-500" />
+        {/* Completion Rate with visual radial gauge */}
+        <div className="p-6 rounded-xl border border-border bg-card flex items-center justify-between gap-6 shadow-sm hover:border-border/80 transition-all">
+          <div className="flex flex-col justify-between h-full flex-1 gap-2">
+            <div>
+              <span className="text-sm font-semibold text-muted-foreground">Completion Rate</span>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-extrabold text-card-foreground">{completionRate}%</span>
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {doneCount} of {totalTasks} tasks completed
+            </p>
           </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-card-foreground">{completionRate}%</span>
-              <span className="text-xs text-muted-foreground font-medium">{doneCount}/{totalTasks} tasks</span>
-            </div>
-            <div className="w-full bg-secondary h-2 rounded-full overflow-hidden mt-3">
-              <div
-                className="bg-purple-500 h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${Math.min(100, Math.max(0, completionRate))}%` }}
+          
+          <div className="relative flex items-center justify-center shrink-0">
+            <svg className="w-16 h-16 transform -rotate-90">
+              <circle
+                cx="32"
+                cy="32"
+                r="26"
+                className="stroke-secondary"
+                strokeWidth="5.5"
+                fill="transparent"
               />
+              <circle
+                cx="32"
+                cy="32"
+                r="26"
+                className="stroke-purple-500 transition-all duration-1000 ease-out"
+                strokeWidth="5.5"
+                fill="transparent"
+                strokeDasharray={2 * Math.PI * 26}
+                strokeDashoffset={2 * Math.PI * 26 * (1 - (completionRate || 0) / 100)}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-purple-500" />
             </div>
           </div>
         </div>
@@ -322,13 +340,11 @@ export default function DashboardPage() {
               label="Open Kanban Board"
               onClick={() => router.push("/dashboard/kanban")}
             />
-            {user?.role === "admin" && (
-              <QuickActionButton
-                icon={<Plus className="h-4 w-4 text-blue-500" />}
-                label="Create New Task"
-                onClick={() => setIsCreateTaskOpen(true)}
-              />
-            )}
+            <QuickActionButton
+              icon={<Plus className="h-4 w-4 text-blue-500" />}
+              label="Create New Task"
+              onClick={() => setIsCreateTaskOpen(true)}
+            />
             {user?.role === "admin" && (
               <QuickActionButton
                 icon={<Users className="h-4 w-4 text-emerald-500" />}

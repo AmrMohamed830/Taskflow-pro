@@ -50,9 +50,11 @@ export interface CreateUserResponse {
 }
 
 export interface UpdateUserData {
-  name: string;
-  email: string;
-  role: "admin" | "user";
+  name?: string;
+  email?: string;
+  role?: "admin" | "user";
+  avatar?: string;
+  department?: string;
 }
 
 export interface UpdateUserResponse {

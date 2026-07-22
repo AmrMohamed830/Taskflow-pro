@@ -29,12 +29,20 @@ export const useAuthStore = create<AuthStore>()(
     )
 );
 
+import { useQueryClient } from "@tanstack/react-query";
+
 // Custom hook to avoid Next.js hydration issues
 export const useAuth = () => {
     const [user, setUserState] = useState<User | null>(null);
     const storeUser = useAuthStore((state) => state.user);
     const setUser = useAuthStore((state) => state.setUser);
-    const logout = useAuthStore((state) => state.logout);
+    const storeLogout = useAuthStore((state) => state.logout);
+    const queryClient = useQueryClient();
+
+    const logout = () => {
+        storeLogout();
+        queryClient.clear();
+    };
 
     useEffect(() => {
         setUserState(storeUser);

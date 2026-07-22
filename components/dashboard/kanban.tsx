@@ -25,6 +25,7 @@ import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
 import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { TaskDetailsDialog } from "./TaskDetailsDialog";
+import { useAuth } from "@/lib/store/auth";
 import {
   DndContext,
   closestCenter,
@@ -162,6 +163,8 @@ const KanbanSkeleton = () => {
 // --- Main Component ---
 
 export const Kanban = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [activeTag, setActiveTag] = useState<string>("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<APITask | null>(null);
@@ -283,13 +286,15 @@ export const Kanban = () => {
               Manage and organize all team tasks
             </p>
           </div>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
-          >
-            <Plus className="h-5 w-5" />
-            New Task
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-brand text-black font-semibold rounded-lg hover:opacity-90 transition-opacity w-full sm:w-auto cursor-pointer"
+            >
+              <Plus className="h-5 w-5" />
+              New Task
+            </button>
+          )}
         </div>
 
         {/* Filters */}
@@ -466,6 +471,8 @@ const TaskCard = ({
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const menuRef = useRef<HTMLDivElement>(null);
   const { data: users } = useUsers();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -531,7 +538,7 @@ const TaskCard = ({
             {task.title}
           </h4>
         </div>
-        {!isOverlay && (
+        {!isOverlay && (isAdmin || task.status !== "done") && (
           <div className="relative" ref={menuRef}>
             <button
               onPointerDown={(e) => e.stopPropagation()}
@@ -597,23 +604,27 @@ const TaskCard = ({
                   </>
                 ) : (
                   <>
-                    <MenuOption
-                      icon={<Edit2 className="h-4 w-4" />}
-                      label="Edit Task"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onEdit?.(task);
-                      }}
-                    />
-                    <MenuOption
-                      icon={<UserPlus className="h-4 w-4" />}
-                      label="Assign To"
-                      hasSubmenu
-                      onClick={() => {
-                        setIsAssignOpen(true);
-                      }}
-                    />
-                    <div className="h-px bg-border my-1.5" />
+                    {isAdmin && (
+                      <MenuOption
+                        icon={<Edit2 className="h-4 w-4" />}
+                        label="Edit Task"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onEdit?.(task);
+                        }}
+                      />
+                    )}
+                    {isAdmin && (
+                      <MenuOption
+                        icon={<UserPlus className="h-4 w-4" />}
+                        label="Assign To"
+                        hasSubmenu
+                        onClick={() => {
+                          setIsAssignOpen(true);
+                        }}
+                      />
+                    )}
+                    {isAdmin && <div className="h-px bg-border my-1.5" />}
                     {task.status !== "done" && (
                       <MenuOption
                         icon={<ArrowRight className="h-4 w-4" />}
@@ -629,16 +640,20 @@ const TaskCard = ({
                         }}
                       />
                     )}
-                    <div className="h-px bg-border my-1.5" />
-                    <MenuOption
-                      icon={<Trash2 className="h-4 w-4" />}
-                      label="Delete Task"
-                      variant="danger"
-                      onClick={() => {
-                        setIsDeleteModalOpen(true);
-                        setIsMenuOpen(false);
-                      }}
-                    />
+                    {isAdmin && (
+                      <>
+                        <div className="h-px bg-border my-1.5" />
+                        <MenuOption
+                          icon={<Trash2 className="h-4 w-4" />}
+                          label="Delete Task"
+                          variant="danger"
+                          onClick={() => {
+                            setIsDeleteModalOpen(true);
+                            setIsMenuOpen(false);
+                          }}
+                        />
+                      </>
+                    )}
                   </>
                 )}
               </div>

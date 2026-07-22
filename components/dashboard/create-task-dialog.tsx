@@ -13,6 +13,7 @@ import { useUsers } from "@/lib/hooks/useUsers";
 import type { User } from "@/lib/types/users";
 import type { Task } from "@/lib/types/tasks";
 import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
+import { useAuth } from "@/lib/store/auth";
 
 interface CreateTaskDialogProps {
   isOpen: boolean;
@@ -196,6 +197,8 @@ export const CreateTaskDialog = ({
   task,
 }: CreateTaskDialogProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "admin";
 
   const {
     register,
@@ -283,7 +286,7 @@ export const CreateTaskDialog = ({
   const assignedToOptions = useMemo(() => {
     const usersList = (usersResponse?.data ?? []) as User[];
     return usersList.map((user: User) => ({
-      value: user._id,
+      value: user._id || "",
       label: user.name,
       sublabel: user.email,
       avatar: user.avatar || "",
@@ -445,27 +448,29 @@ export const CreateTaskDialog = ({
             </div>
 
             {/* Assign To */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Assigned To
-              </label>
-              <input type="hidden" {...register("assignedTo")} />
-              <CustomSelect
-                value={assignedToValue}
-                onChange={(val) =>
-                  setValue("assignedTo", val, { shouldValidate: true })
-                }
-                options={assignedToOptions}
-                placeholder="Select a user"
-                isLoading={isLoading}
-              />
+            {isAdmin && (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Assigned To
+                </label>
+                <input type="hidden" {...register("assignedTo")} />
+                <CustomSelect
+                  value={assignedToValue}
+                  onChange={(val) =>
+                    setValue("assignedTo", val, { shouldValidate: true })
+                  }
+                  options={assignedToOptions}
+                  placeholder="Select a user"
+                  isLoading={isLoading}
+                />
 
-              {formErrors.assignedTo && (
-                <p className="text-sm text-red-500">
-                  {formErrors.assignedTo.message}
-                </p>
-              )}
-            </div>
+                {formErrors.assignedTo && (
+                  <p className="text-sm text-red-500">
+                    {formErrors.assignedTo.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Tags */}

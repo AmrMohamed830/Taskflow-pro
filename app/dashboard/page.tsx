@@ -30,6 +30,7 @@ import { useAuth } from "@/lib/store/auth";
 import { CreateTaskDialog } from "@/components/dashboard/create-task-dialog";
 import { TaskDetailsDialog } from "@/components/dashboard/TaskDetailsDialog";
 import type { Task, TaskPriority, TaskStatus } from "@/lib/types/tasks";
+import type { User } from "@/lib/types/users";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -65,10 +66,10 @@ export default function DashboardPage() {
 
   // Derive Team statistics from users API
   const teamMetrics = useMemo(() => {
-    const userList = usersResponse?.data || [];
+    const userList = (usersResponse?.data || []) as User[];
     const totalUsers = usersResponse?.total || userList.length || 0;
-    const adminCount = userList.filter((u) => u.role === "admin").length;
-    const regularUserCount = userList.filter((u) => u.role === "user" || !u.role).length;
+    const adminCount = userList.filter((u: User) => u.role === "admin").length;
+    const regularUserCount = userList.filter((u: User) => u.role === "user" || !u.role).length;
     return {
       totalUsers,
       adminCount: adminCount || 1,
@@ -165,13 +166,15 @@ export default function DashboardPage() {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
-          <button
-            onClick={() => setIsCreateTaskOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-black font-semibold text-sm shadow-md hover:opacity-90 transition-all cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Create Task
-          </button>
+          {user?.role === "admin" && (
+            <button
+              onClick={() => setIsCreateTaskOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-black font-semibold text-sm shadow-md hover:opacity-90 transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Create Task
+            </button>
+          )}
         </div>
       </div>
 
@@ -319,16 +322,20 @@ export default function DashboardPage() {
               label="Open Kanban Board"
               onClick={() => router.push("/dashboard/kanban")}
             />
-            <QuickActionButton
-              icon={<Plus className="h-4 w-4 text-blue-500" />}
-              label="Create New Task"
-              onClick={() => setIsCreateTaskOpen(true)}
-            />
-            <QuickActionButton
-              icon={<Users className="h-4 w-4 text-emerald-500" />}
-              label="Manage Users"
-              onClick={() => router.push("/dashboard/users")}
-            />
+            {user?.role === "admin" && (
+              <QuickActionButton
+                icon={<Plus className="h-4 w-4 text-blue-500" />}
+                label="Create New Task"
+                onClick={() => setIsCreateTaskOpen(true)}
+              />
+            )}
+            {user?.role === "admin" && (
+              <QuickActionButton
+                icon={<Users className="h-4 w-4 text-emerald-500" />}
+                label="Manage Users"
+                onClick={() => router.push("/dashboard/users")}
+              />
+            )}
           </div>
         </div>
 

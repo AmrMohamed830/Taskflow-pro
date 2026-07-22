@@ -42,39 +42,52 @@ export const TaskDetailsDialog = ({
     useTaskComments(taskId ?? "");
   const [commentText, setCommentText] = useState("");
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [prevTaskId, setPrevTaskId] = useState<string | null | undefined>(taskId);
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+
+  if (task?._id !== prevTaskId) {
+    setPrevTaskId(task?._id);
+    setSubtasks(task?.subtasks || []);
+  }
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubtaskTitle.trim() || !task) return;
 
-    const currentSubtasks = task.subtasks || [];
+    const tempId = Array.from({ length: 24 }, () =>
+      Math.floor(Math.random() * 16).toString(16)
+    ).join("");
+
     const newSubtask = {
-      _id: Math.random().toString(36).substr(2, 9),
+      _id: tempId,
       title: newSubtaskTitle.trim(),
       isCompleted: false,
     };
 
+    const updated = [...subtasks, newSubtask];
+    setSubtasks(updated); // Update local state instantly!
+    setNewSubtaskTitle("");
+
     updateTaskMutation.mutate({
       id: task._id,
       data: {
-        subtasks: [...currentSubtasks, newSubtask],
+        subtasks: updated,
       },
     });
-    setNewSubtaskTitle("");
   };
 
   const handleToggleSubtask = (subtaskId: string, isCompleted: boolean) => {
     if (!task) return;
 
-    const currentSubtasks = task.subtasks || [];
-    const updatedSubtasks = currentSubtasks.map((sub: Subtask) =>
+    const updated = subtasks.map((sub) =>
       sub._id === subtaskId ? { ...sub, isCompleted } : sub
     );
+    setSubtasks(updated); // Update local state instantly!
 
     updateTaskMutation.mutate({
       id: task._id,
       data: {
-        subtasks: updatedSubtasks,
+        subtasks: updated,
       },
     });
   };
@@ -82,19 +95,19 @@ export const TaskDetailsDialog = ({
   const handleDeleteSubtask = (subtaskId: string) => {
     if (!task) return;
 
-    const currentSubtasks = task.subtasks || [];
-    const updatedSubtasks = currentSubtasks.filter((sub: Subtask) => sub._id !== subtaskId);
+    const updated = subtasks.filter((sub) => sub._id !== subtaskId);
+    setSubtasks(updated); // Update local state instantly!
 
     updateTaskMutation.mutate({
       id: task._id,
       data: {
-        subtasks: updatedSubtasks,
+        subtasks: updated,
       },
     });
   };
 
-  const totalSubtasks = task?.subtasks?.length || 0;
-  const completedCount = task?.subtasks?.filter((sub: Subtask) => sub.isCompleted).length || 0;
+  const totalSubtasks = subtasks.length;
+  const completedCount = subtasks.filter((sub) => sub.isCompleted).length;
  
 
   if (!isOpen) return null;
@@ -334,8 +347,8 @@ export const TaskDetailsDialog = ({
 
                 {/* Subtask Items List */}
                 <div className="space-y-2">
-                  {task.subtasks && task.subtasks.length > 0 ? (
-                    task.subtasks.map((subtask: Subtask) => (
+                  {subtasks && subtasks.length > 0 ? (
+                    subtasks.map((subtask: Subtask) => (
                       <div
                         key={subtask._id}
                         className="flex items-center justify-between gap-3 p-2 rounded-lg bg-[#181d28] hover:bg-[#1e2432] group transition-colors"

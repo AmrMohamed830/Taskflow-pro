@@ -24,3 +24,14 @@ export type LoginResponse = {
         updatedAt?: string;
     };
 };
+
+export type ChangePasswordFormData = {
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+};
+
+export type ChangePasswordResponse = {
+    success: boolean;
+    message: string;
+};

@@ -1,6 +1,6 @@
 export interface User {
-  _id: string;
-  id?: string;
+  _id?: string;
+  id: string;
   name: string;
   email: string;
   role: "admin" | "user";
@@ -59,4 +59,9 @@ export interface UpdateUserResponse {
   success: boolean;
   user: User;
   message: string;
+}
+
+export interface GetUserResponse {
+  success: boolean;
+  user: User;
 }

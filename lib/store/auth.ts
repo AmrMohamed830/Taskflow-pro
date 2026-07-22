@@ -2,18 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import Cookies from "js-cookie";
 import { useState, useEffect } from "react";
+import type { User } from "../types/users";
 
-export type User = {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    avatar?: string;
-    department?: string;
-    isActive?: boolean;
-    lastLogin?: string;
-    image?: string;
-};
 
 type AuthStore = {
     user: User | null;

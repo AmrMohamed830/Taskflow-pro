@@ -1,4 +1,4 @@
-import type { LoginResponse, RegisterFormData, LoginFormData } from "../types/auth";
+import type { LoginResponse, RegisterFormData, LoginFormData, ChangePasswordFormData, ChangePasswordResponse } from "../types/auth";
 import { api } from "./client";
 
 export const registerUser = async (
@@ -15,4 +15,13 @@ export const loginUser = async (data: LoginFormData): Promise<LoginResponse> => 
 
 export const logoutUser = async () => {
     return api.post("/auth/logout");
+};
+
+export const changePassword = async (
+    data: ChangePasswordFormData
+): Promise<ChangePasswordResponse> => {
+    return api.post<ChangePasswordResponse>("/auth/change-password", {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+    });
 };

@@ -47,7 +47,11 @@ async function apiRequest<T = unknown>(endpoint: string, options: FetchOptions =
                     window.location.href = "/login";
                 }
             }
-            throw new Error(data?.message || data?.error?.message || "Something went wrong");
+            throw new Error(
+                data?.message || 
+                (typeof data?.error === "string" ? data.error : data?.error?.message) || 
+                "Something went wrong"
+            );
         }
 
         return data;

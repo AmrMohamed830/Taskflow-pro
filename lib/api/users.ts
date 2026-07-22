@@ -7,6 +7,7 @@ import type {
   CreateUserResponse,
   UpdateUserData,
   UpdateUserResponse,
+  GetUserResponse,
 } from "../types/users";
 
 export const getUsers = async (): Promise<UsersResponse> => {
@@ -32,6 +33,13 @@ export const createUser = async (
   return api.post<CreateUserResponse>("/users", data);
 };
 
-export const updateUser = async (id: string,data: UpdateUserData,): Promise<UpdateUserResponse> => {
+export const updateUser = async (
+  id: string,
+  data: UpdateUserData,
+): Promise<UpdateUserResponse> => {
   return api.put<UpdateUserResponse>(`/users/${id}`, data);
+};
+
+export const getUserById = async (id: string): Promise<GetUserResponse> => {
+  return api.get<GetUserResponse>(`/users/${id}`);
 };

@@ -11,6 +11,11 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
   tasksCount?: number;
+  notificationSettings?: {
+    email: boolean;
+    reminders: boolean;
+    summary: boolean;
+  };
 }
 
 export interface UsersResponse {
@@ -55,6 +60,11 @@ export interface UpdateUserData {
   role?: "admin" | "user";
   avatar?: string;
   department?: string;
+  notificationSettings?: {
+    email: boolean;
+    reminders: boolean;
+    summary: boolean;
+  };
 }
 
 export interface UpdateUserResponse {

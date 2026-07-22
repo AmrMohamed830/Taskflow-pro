@@ -232,6 +232,9 @@ export default function ProfilePage() {
       setName(user.name || "");
       setEmail(user.email || "");
       setDepartment(user.department || "");
+      if (user.notificationSettings) {
+        setNotifications(user.notificationSettings);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?._id]);
@@ -261,12 +264,27 @@ export default function ProfilePage() {
   }, []);
 
   const handleToggleNotification = (key: "email" | "reminders" | "summary") => {
-    setNotifications((prev) => {
-      const updated = { ...prev, [key]: !prev[key] };
-      localStorage.setItem("user-notifications", JSON.stringify(updated));
-      toast.success("Notification preferences updated");
-      return updated;
-    });
+    if (!user) return;
+    const updated = { ...notifications, [key]: !notifications[key] };
+    setNotifications(updated);
+    localStorage.setItem("user-notifications", JSON.stringify(updated));
+
+    updateUserMutation.mutate(
+      {
+        id: user.id || user._id || "",
+        data: {
+          notificationSettings: updated,
+        },
+      },
+      {
+        onSuccess: (response) => {
+          if (response?.user) {
+            setUser(response.user);
+          }
+          toast.success("Notification preferences updated");
+        },
+      }
+    );
   };
 
   const handleToggleSecurity = (key: "twoFactor") => {

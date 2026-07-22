@@ -10,8 +10,13 @@ import type {
   GetUserResponse,
 } from "../types/users";
 
-export const getUsers = async (): Promise<UsersResponse> => {
-  return api.get<UsersResponse>("/users");
+export const getUsers = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+}): Promise<UsersResponse> => {
+  return api.get<UsersResponse>("/users", { params });
 };
 
 export const updateUserRole = async (

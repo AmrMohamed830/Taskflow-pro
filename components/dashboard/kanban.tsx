@@ -10,16 +10,19 @@ import {
   Edit2,
   UserPlus,
   ArrowRight,
+  ArrowLeft,
   Trash2,
   CheckCircle2,
   Clock,
   ListTodo,
   Tag as TagIcon,
+  Check,
 } from "lucide-react";
 import { useTasks } from "@/lib/hooks/useTasks";
 import type { TaskStatus, Task as APITask } from "@/lib/types/tasks";
 import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
 import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
+import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { TaskDetailsDialog } from "./TaskDetailsDialog";
 import {
@@ -34,6 +37,9 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { useFilterStore } from "@/lib/store/filters";
+import { useDebounce } from "@/lib/hooks/useDebounce";
+import { useUsers } from "@/lib/hooks/useUsers";
 
 // --- Types ---
 
@@ -45,6 +51,7 @@ interface Task {
   tags: string[];
   dueDate?: string;
   commentsCount?: number;
+  assigneeId?: string;
   assigneeName: string;
   assigneeInitial: string;
   assigneeAvatar?: string;
@@ -95,6 +102,63 @@ const ALL_TAGS = [
   "testing",
 ];
 
+// --- Kanban Skeleton Loader ---
+
+const KanbanSkeleton = () => {
+  return (
+    <div className="grid grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-6 w-full min-w-0 animate-pulse">
+      {[1, 2, 3].map((colIndex) => (
+        <div key={colIndex} className="flex flex-col gap-6 min-w-0">
+          {/* Column Header Skeleton */}
+          <div className="flex items-center justify-between border-b border-border/50 pb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-24 bg-secondary/30 rounded-lg" />
+              <div className="h-5 w-6 bg-secondary/20 rounded-full" />
+            </div>
+            <div className="h-4 w-4 bg-secondary/20 rounded" />
+          </div>
+
+          {/* Tasks Skeletons */}
+          <div className="flex flex-col gap-4">
+            {[1, 2].map((cardIndex) => (
+              <div
+                key={cardIndex}
+                className="p-5 rounded-2xl border border-border/50 bg-card/20 flex flex-col gap-4"
+              >
+                {/* Tags row */}
+                <div className="flex gap-2">
+                  <div className="h-4 w-12 bg-secondary/30 rounded-md" />
+                  <div className="h-4 w-16 bg-secondary/20 rounded-md" />
+                </div>
+
+                {/* Title */}
+                <div className="h-5 w-3/4 bg-secondary/30 rounded-lg" />
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <div className="h-3 w-full bg-secondary/20 rounded" />
+                  <div className="h-3 w-5/6 bg-secondary/20 rounded" />
+                </div>
+
+                <div className="h-px bg-border/20 my-1" />
+
+                {/* Bottom Row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-full bg-secondary/30" />
+                    <div className="h-3.5 w-16 bg-secondary/20 rounded" />
+                  </div>
+                  <div className="h-4 w-20 bg-secondary/20 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // --- Main Component ---
 
 export const Kanban = () => {
@@ -104,8 +168,11 @@ export const Kanban = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { search, clearSearch } = useFilterStore();
+  const debouncedSearch = useDebounce(search, 300);
   const { data, isLoading, error } = useTasks({
     tag: activeTag || undefined,
+    search: debouncedSearch || undefined,
   });
   const { mutate: updateTaskStatus } = useUpdateTaskStatus();
 
@@ -117,7 +184,9 @@ export const Kanban = () => {
     }),
     useSensor(KeyboardSensor),
   );
-
+  useEffect(() => {
+    clearSearch();
+  }, [clearSearch]);
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
@@ -142,9 +211,6 @@ export const Kanban = () => {
     setActiveId(null);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
   if (error) {
     console.log(error);
     return <div>Something went wrong.</div>;
@@ -171,6 +237,7 @@ export const Kanban = () => {
         })()
       : undefined,
     commentsCount: t.comments?.length || 0,
+    assigneeId: t.assignedTo?._id,
     assigneeName: t.assignedTo?.name || "Unassigned",
     assigneeInitial: t.assignedTo?.name
       ? t.assignedTo.name.charAt(0).toUpperCase()
@@ -186,8 +253,6 @@ export const Kanban = () => {
   const toggleTag = (tag: string) => {
     setActiveTag((prev) => (prev === tag ? "" : tag));
   };
-
-
 
   const handleEditTask = (task: Task) => {
     const apiTask = apiTasks.find((t) => t._id === task.id) || null;
@@ -253,18 +318,22 @@ export const Kanban = () => {
         </div>
 
         {/* Board Layout */}
-        <div className="grid grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-6 w-full min-w-0">
-          {COLUMNS.map((column) => (
-            <div key={column.id} className="flex flex-col gap-6 min-w-0">
-              <KanbanColumn
-                column={column}
-                tasks={tasks.filter((t) => t.status === column.id)}
-                onEdit={handleEditTask}
-                onOpen={handleOpenTaskDetails}
-              />
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <KanbanSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-6 w-full min-w-0">
+            {COLUMNS.map((column) => (
+              <div key={column.id} className="flex flex-col gap-6 min-w-0">
+                <KanbanColumn
+                  column={column}
+                  tasks={tasks.filter((t) => t.status === column.id)}
+                  onEdit={handleEditTask}
+                  onOpen={handleOpenTaskDetails}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         <CreateTaskDialog
           isOpen={isCreateModalOpen}
@@ -389,13 +458,22 @@ const TaskCard = ({
   isDragging = false,
 }: TaskCardProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const { mutate } = useUpdateTaskStatus();
   const { mutate: deleteTask, isPending: isDeleting } = useDeleteTask();
+  const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const menuRef = useRef<HTMLDivElement>(null);
+  const { data: users } = useUsers();
 
   useEffect(() => {
-    if (!isMenuOpen) return;
+    if (!isMenuOpen) {
+      setTimeout(() => {
+        setIsAssignOpen(false);
+      }, 0);
+      return;
+    }
 
     const handleClickOutside = (event: MouseEvent | PointerEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -459,6 +537,7 @@ const TaskCard = ({
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
+                setSelectedUserId(task.assigneeId || "");
                 setIsMenuOpen((prev) => !prev);
               }}
               className={`p-1.5 rounded-lg transition-all
@@ -473,48 +552,95 @@ const TaskCard = ({
                 onClick={(e) => e.stopPropagation()}
                 className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-popover shadow-2xl z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
               >
-                <MenuOption
-                  icon={<Edit2 className="h-4 w-4" />}
-                  label="Edit Task"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onEdit?.(task);
-                  }}
-                />
-                <MenuOption
-                  icon={<UserPlus className="h-4 w-4" />}
-                  label="Assign To"
-                  hasSubmenu
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                  }}
-                />
-                <div className="h-px bg-border my-1.5" />
-                {task.status !== "done" && (
-                  <MenuOption
-                    icon={<ArrowRight className="h-4 w-4" />}
-                    label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      mutate({
-                        id: task.id,
-                        data: {
-                          status: task.status === "todo" ? "doing" : "done",
-                        },
-                      });
-                    }}
-                  />
+                {isAssignOpen ? (
+                  <>
+                    <MenuOption
+                      icon={<ArrowLeft className="h-4 w-4" />}
+                      label="Back"
+                      onClick={() => setIsAssignOpen(false)}
+                    />
+                    <div className="h-px bg-border my-1" />
+                    <div className="max-h-48 overflow-y-auto">
+                      {(users?.data ?? []).map(
+                        (user: { _id: string; name: string }) => (
+                          <button
+                            key={user._id}
+                            disabled={isUpdating}
+                            onClick={() => {
+                              if (isUpdating) return;
+                              setIsMenuOpen(false);
+                              setIsAssignOpen(false);
+                              setSelectedUserId(user._id);
+                              updateTask({
+                                id: task.id,
+                                data: {
+                                  assignedTo: user._id,
+                                },
+                              });
+                            }}
+                            className={`flex items-center justify-between w-full px-4 py-2 text-[12px] font-bold transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed
+                              ${selectedUserId === user._id ? "bg-brand/10 text-brand hover:bg-brand/15" : "text-foreground hover:bg-secondary"}`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="h-5.5 w-5.5 rounded-full bg-brand/15 border border-brand/20 flex items-center justify-center text-brand text-[9px] font-black shrink-0">
+                                {user.name ? user.name[0].toUpperCase() : "U"}
+                              </div>
+                              <span className="truncate">{user.name}</span>
+                            </div>
+                            {selectedUserId === user._id && (
+                              <Check className="h-3.5 w-3.5 text-brand shrink-0" />
+                            )}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <MenuOption
+                      icon={<Edit2 className="h-4 w-4" />}
+                      label="Edit Task"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onEdit?.(task);
+                      }}
+                    />
+                    <MenuOption
+                      icon={<UserPlus className="h-4 w-4" />}
+                      label="Assign To"
+                      hasSubmenu
+                      onClick={() => {
+                        setIsAssignOpen(true);
+                      }}
+                    />
+                    <div className="h-px bg-border my-1.5" />
+                    {task.status !== "done" && (
+                      <MenuOption
+                        icon={<ArrowRight className="h-4 w-4" />}
+                        label={`Move to ${task.status === "todo" ? "In Progress" : "Done"}`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          mutate({
+                            id: task.id,
+                            data: {
+                              status: task.status === "todo" ? "doing" : "done",
+                            },
+                          });
+                        }}
+                      />
+                    )}
+                    <div className="h-px bg-border my-1.5" />
+                    <MenuOption
+                      icon={<Trash2 className="h-4 w-4" />}
+                      label="Delete Task"
+                      variant="danger"
+                      onClick={() => {
+                        setIsDeleteModalOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                    />
+                  </>
                 )}
-                <div className="h-px bg-border my-1.5" />
-                <MenuOption
-                  icon={<Trash2 className="h-4 w-4" />}
-                  label="Delete Task"
-                  variant="danger"
-                  onClick={() => {
-                    setIsDeleteModalOpen(true);
-                    setIsMenuOpen(false);
-                  }}
-                />
               </div>
             )}
           </div>
@@ -556,8 +682,29 @@ const TaskCard = ({
             </div>
           )}
         </div>
-        <div className="h-7 w-7 rounded-full bg-secondary-brand/20 border border-brand/20 text-brand flex items-center justify-center text-[11px] font-black shadow-sm shadow-brand/5 overflow-hidden">
-          {task.assigneeAvatar ? (
+        <div className="h-7 w-7 rounded-full bg-secondary-brand/20 border border-brand/20 text-brand flex items-center justify-center text-[11px] font-black shadow-sm shadow-brand/5 overflow-hidden relative">
+          {isUpdating ? (
+            <svg
+              className="animate-spin h-3.5 w-3.5 text-brand"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          ) : task.assigneeAvatar ? (
             task.assigneeAvatar.startsWith("http") ||
             task.assigneeAvatar.startsWith("/") ? (
               // eslint-disable-next-line @next/next/no-img-element

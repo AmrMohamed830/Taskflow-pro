@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Users as UsersIcon,
   UserPlus,
@@ -19,13 +19,14 @@ import {
   Eye,
   EyeOff,
   Search,
-  Filter,
 } from "lucide-react";
 import { useUsers } from "@/lib/hooks/useUsers";
 import type { User } from "@/lib/types/users";
 import { useDeleteUser } from "@/lib/hooks/useDeleteUser";
 import { useCreateUser } from "@/lib/hooks/useCreateUser";
 import { useUpdateUser } from "@/lib/hooks/useUpdateUser";
+import { useFilterStore } from "@/lib/store/filters";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 // --- Main Component ---
 
@@ -41,8 +42,20 @@ export const Users = () => {
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState("");
+  const { search, setSearch, clearSearch } = useFilterStore();
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
+  const [page, setPage] = useState(1);
+  const limit = 5;
+
+  useEffect(() => {
+    clearSearch();
+  }, [clearSearch]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setPage(1);
+    }, 0);
+  }, [search, roleFilter]);
 
   // Add User Form State
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -54,22 +67,22 @@ export const Users = () => {
   const [isAddUserRoleOpen, setIsAddUserRoleOpen] = useState(false);
 
   // Hooks
-  const { data, isLoading, error } = useUsers();
-  const users: User[] = data?.data ?? [];
+  const debouncedSearch = useDebounce(search, 300);
+  const { data, isLoading, error } = useUsers({
+    page,
+    limit,
+    search: debouncedSearch || undefined,
+    role: roleFilter,
+  });
+  const users: User[] = useMemo(() => data?.data ?? [], [data]);
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
   const { mutate: createUser, isPending: isCreating } = useCreateUser();
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
 
   // Filtered Users
   const filteredUsers = useMemo(() => {
-    return users.filter((u: User) => {
-      const matchesSearch =
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRole = roleFilter === "all" || u.role === roleFilter;
-      return matchesSearch && matchesRole;
-    });
-  }, [users, searchQuery, roleFilter]);
+    return users;
+  }, [users]);
 
   const stats = [
     {
@@ -143,7 +156,7 @@ export const Users = () => {
         onSuccess: () => {
           setEditingUser(null);
         },
-      }
+      },
     );
   };
 
@@ -164,7 +177,8 @@ export const Users = () => {
             User Management
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage workspace members, update full profile info, and assign permissions.
+            Manage workspace members, update full profile info, and assign
+            permissions.
           </p>
         </div>
         <button
@@ -187,7 +201,9 @@ export const Users = () => {
               <span className="text-sm font-semibold text-muted-foreground">
                 {stat.title}
               </span>
-              <div className={`p-2.5 rounded-xl border ${stat.bg} ${stat.color}`}>
+              <div
+                className={`p-2.5 rounded-xl border ${stat.bg} ${stat.color}`}
+              >
                 {stat.icon}
               </div>
             </div>
@@ -203,9 +219,12 @@ export const Users = () => {
         {/* Controls: Search & Filter */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-4">
           <div>
-            <h2 className="text-lg font-bold text-foreground">All Workspace Users</h2>
+            <h2 className="text-lg font-bold text-foreground">
+              All Workspace Users
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Showing {filteredUsers.length} of {users.length} registered members
+              Showing {filteredUsers.length} of {users.length} registered
+              members
             </p>
           </div>
 
@@ -215,14 +234,14 @@ export const Users = () => {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search name or email..."
                 className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-secondary/20 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 placeholder:text-muted-foreground/60 transition-all"
               />
-              {searchQuery && (
+              {search && (
                 <button
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => setSearch("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -317,7 +336,7 @@ export const Users = () => {
                         <button
                           onClick={() =>
                             setOpenDropdownId(
-                              openDropdownId === userId ? null : userId
+                              openDropdownId === userId ? null : userId,
                             )
                           }
                           className={`p-2 rounded-lg transition-all cursor-pointer ${
@@ -363,11 +382,18 @@ export const Users = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td
+                    colSpan={5}
+                    className="py-12 text-center text-muted-foreground"
+                  >
                     <div className="flex flex-col items-center gap-2">
                       <UsersIcon className="h-8 w-8 opacity-30" />
-                      <p className="font-semibold text-sm">No matching users found</p>
-                      <p className="text-xs">Try adjusting your search query or role filter.</p>
+                      <p className="font-semibold text-sm">
+                        No matching users found
+                      </p>
+                      <p className="text-xs">
+                        Try adjusting your search query or role filter.
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -375,6 +401,31 @@ export const Users = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {data?.pagination && data.pagination.pages > 1 && (
+          <div className="flex items-center justify-between border-t border-border/50 pt-4 mt-4">
+            <span className="text-xs text-muted-foreground font-semibold">
+              Page {page} of {data.pagination.pages} ({data.pagination.total} total members)
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page === 1}
+                className="px-3.5 py-1.5 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, data.pagination.pages))}
+                disabled={page === data.pagination.pages}
+                className="px-3.5 py-1.5 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit User Modal (Full User Update: Name, Email, Role) */}
@@ -406,7 +457,10 @@ export const Users = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateUserSubmit} className="flex flex-col gap-5">
+            <form
+              onSubmit={handleUpdateUserSubmit}
+              className="flex flex-col gap-5"
+            >
               {/* Name Field */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">
@@ -548,9 +602,7 @@ export const Users = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={
-                    isUpdating || !name.trim() || !email.trim()
-                  }
+                  disabled={isUpdating || !name.trim() || !email.trim()}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -650,7 +702,7 @@ export const Users = () => {
                       setNewUserRole("user");
                       setIsAddUserOpen(false);
                     },
-                  }
+                  },
                 );
               }}
               className="flex flex-col gap-5"

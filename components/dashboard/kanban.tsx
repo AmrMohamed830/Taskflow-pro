@@ -98,13 +98,15 @@ const ALL_TAGS = [
 // --- Main Component ---
 
 export const Kanban = () => {
-  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [activeTag, setActiveTag] = useState<string>("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<APITask | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const { data, isLoading, error } = useTasks();
+  const { data, isLoading, error } = useTasks({
+    tag: activeTag || undefined,
+  });
   const { mutate: updateTaskStatus } = useUpdateTaskStatus();
 
   const sensors = useSensors(
@@ -182,16 +184,10 @@ export const Kanban = () => {
     : null;
 
   const toggleTag = (tag: string) => {
-    setActiveTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
+    setActiveTag((prev) => (prev === tag ? "" : tag));
   };
 
-  const filteredTasks = tasks.filter(
-    (task) =>
-      activeTags.length === 0 ||
-      task.tags.some((tag) => activeTags.includes(tag)),
-  );
+
 
   const handleEditTask = (task: Task) => {
     const apiTask = apiTasks.find((t) => t._id === task.id) || null;
@@ -244,7 +240,7 @@ export const Kanban = () => {
                 onClick={() => toggleTag(tag)}
                 className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all whitespace-nowrap flex items-center gap-2
                   ${
-                    activeTags.includes(tag)
+                    activeTag === tag
                       ? "bg-brand/10 border-brand text-brand shadow-[0_0_10px_rgba(0,208,145,0.1)]"
                       : "bg-secondary/20 border-border/50 text-muted-foreground hover:border-muted-foreground/30"
                   }`}
@@ -262,7 +258,7 @@ export const Kanban = () => {
             <div key={column.id} className="flex flex-col gap-6 min-w-0">
               <KanbanColumn
                 column={column}
-                tasks={filteredTasks.filter((t) => t.status === column.id)}
+                tasks={tasks.filter((t) => t.status === column.id)}
                 onEdit={handleEditTask}
                 onOpen={handleOpenTaskDetails}
               />

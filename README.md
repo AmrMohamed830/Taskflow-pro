@@ -3,6 +3,30 @@
 
 TaskFlow Pro is a state-of-the-art, high-performance task management application designed for modern teams. Built with a focus on premium user experience, vibrant aesthetics, and instantaneous UI response times.
 
+## 👥 Live Demo Credentials
+
+You can test the application instantly using these demo accounts:
+
+| Role | Email Address | Password |
+| :--- | :--- | :--- |
+| **Admin** | `amr25953473@gmail.com` | `123456` |
+| **User** | `ahmed2553473@gmail.com` | `123456` |
+
+### 📊 Feature Access Comparison
+
+Here is a quick overview of what each role can access and manage:
+
+| Feature | Admin | User |
+| :--- | :---: | :---: |
+| **Dashboard** | ✅ | ✅ |
+| **Kanban Board** | ✅ | ✅ |
+| **Create Task** | ✅ | ❌ |
+| **Assign Users** | ✅ | ❌ |
+| **Manage Users** | ✅ | ❌ |
+| **Change Roles** | ✅ | ❌ |
+| **Edit Own Tasks** | ✅ | ✅ |
+| **Comments** | ✅ | ✅ |
+
 ---
 
 ## ✨ Key Features

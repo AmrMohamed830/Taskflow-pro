@@ -12,6 +12,7 @@ const queryClient = new QueryClient();
 function AuthSync() {
     const { data: session } = useSession();
     const setUser = useAuthStore((state) => state.setUser);
+    const logout = useAuthStore((state) => state.logout);
 
     useEffect(() => {
         if (session?.backendToken) {
@@ -19,8 +20,10 @@ function AuthSync() {
             if (session.backendUser) {
                 setUser(session.backendUser);
             }
+        } else if (!session && !Cookies.get("token")) {
+            logout();
         }
-    }, [session, setUser]);
+    }, [session, setUser, logout]);
 
     return null;
 }

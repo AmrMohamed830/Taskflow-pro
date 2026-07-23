@@ -61,20 +61,17 @@ const Sidebar = () => {
 
     const handleLogout = async () => {
         try {
+            logout(); // مسح Zustand والتوكن أولاً
+
             if (session) {
-                await signOut({ redirect: false });
+                await signOut({ callbackUrl: "/login" }); // تسجيل خروج كامل مع توجيه صلب
             } else {
                 await logoutUser();
+                router.replace("/login");
             }
-
-            logout();
-
-            router.replace("/login");
         } catch (error) {
             console.error(error);
-
             logout();
-
             router.replace("/login");
         }
     };

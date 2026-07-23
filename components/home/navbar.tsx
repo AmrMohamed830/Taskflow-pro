@@ -7,7 +7,6 @@ import ThemeToggle from "../global/theme";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/store/auth";
-import Cookies from "js-cookie";
 
 const Navbar = () => {
     const [open, setOpen] = useState(false);
@@ -47,11 +46,12 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         try {
-            await signOut({ redirect: false }); // تسجيل خروج من NextAuth
-            logout(); // تسجيل خروج من Zustand والـ Cookies
+            logout(); // تسجيل خروج من Zustand والـ Cookies أولاً
+            await signOut({ callbackUrl: "/" }); // تسجيل خروج من NextAuth والرجوع للصفحة الرئيسية
         } catch (error) {
             console.error("Logout failed:", error);
-            logout(); // التأكد من المسح حتى لو فشل NextAuth
+            logout();
+            window.location.href = "/";
         }
     };
 

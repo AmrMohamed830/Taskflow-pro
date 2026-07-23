@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getTaskComments } from "../api/tasks";
+import { getTaskComments } from "../../api/tasks";
 
 export const useTaskComments = (taskId: string) => {
   return useQuery({

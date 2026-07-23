@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getUserById } from "../api/users";
+import { getUserById } from "../../api/users";
 
 export const useUser = (id: string) => {
   return useQuery({
@@ -8,5 +8,3 @@ export const useUser = (id: string) => {
     enabled: !!id,
   });
 };
-
-

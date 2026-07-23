@@ -1,14 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { addComment } from "../api/tasks";
-import type { AddCommentData } from "../types/tasks";
+import { deleteComment } from "../../api/tasks";
 
-export const useAddComment = () => {
+export const useDeleteComment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ taskId, data }: { taskId: string; data: AddCommentData }) =>
-      addComment(taskId, data),
+    mutationFn: ({
+      taskId,
+      commentId,
+    }: {
+      taskId: string;
+      commentId: string;
+    }) => deleteComment(taskId, commentId),
 
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -21,11 +25,11 @@ export const useAddComment = () => {
         queryKey: ["task", variables.taskId],
       });
 
-      toast.success("Comment added successfully");
+      toast.success("Comment deleted successfully");
     },
 
     onError: () => {
-      toast.error("Failed to add comment");
+      toast.error("Failed to delete comment");
     },
   });
 };

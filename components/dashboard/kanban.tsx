@@ -18,12 +18,13 @@ import {
   Tag as TagIcon,
   Check,
   CheckSquare,
+  AlertTriangle,
 } from "lucide-react";
-import { useTasks } from "@/lib/hooks/useTasks";
+import { useTasks } from "@/lib/hooks/tasks/useTasks";
 import type { TaskStatus, Task as APITask, Subtask } from "@/lib/types/tasks";
-import { useUpdateTaskStatus } from "@/lib/hooks/useUpdateTaskStatus";
-import { useDeleteTask } from "@/lib/hooks/useDeleteTask";
-import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
+import { useUpdateTaskStatus } from "@/lib/hooks/tasks/useUpdateTaskStatus";
+import { useDeleteTask } from "@/lib/hooks/tasks/useDeleteTask";
+import { useUpdateTask } from "@/lib/hooks/tasks/useUpdateTask";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { TaskDetailsDialog } from "./TaskDetailsDialog";
 import { useAuth } from "@/lib/store/auth";
@@ -40,8 +41,11 @@ import { useDroppable } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useFilterStore } from "@/lib/store/filters";
-import { useDebounce } from "@/lib/hooks/useDebounce";
-import { useUsers } from "@/lib/hooks/useUsers";
+import { useDebounce } from "@/lib/hooks/common/useDebounce";
+import { useUsers } from "@/lib/hooks/users/useUsers";
+import type { User } from "@/lib/types/users";
+import { Pagination } from "@/components/ui/pagination";
+import { toast } from "sonner";
 
 // --- Types ---
 
@@ -172,12 +176,24 @@ export const Kanban = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
   const { search, clearSearch } = useFilterStore();
   const debouncedSearch = useDebounce(search, 300);
+
   const { data, isLoading, error } = useTasks({
     tag: activeTag || undefined,
     search: debouncedSearch || undefined,
+    page,
+    limit,
   });
+
+  useEffect(() => {
+    setTimeout(() => {
+      setPage(1);
+    }, 0);
+  }, [search, activeTag]);
   const { mutate: updateTaskStatus } = useUpdateTaskStatus();
 
   const sensors = useSensors(
@@ -248,7 +264,8 @@ export const Kanban = () => {
       : "?",
     assigneeAvatar: (t.assignedTo as { avatar?: string })?.avatar,
     priority: t.priority,
-    createdById: typeof t.createdBy === "string" ? t.createdBy : t.createdBy?._id || "",
+    createdById:
+      typeof t.createdBy === "string" ? t.createdBy : t.createdBy?._id || "",
     subtasks: t.subtasks || [],
   }));
 
@@ -339,6 +356,22 @@ export const Kanban = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Pagination Controls */}
+        {data?.pagination && data.pagination.total > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={data.pagination.pages}
+            totalItems={data.pagination.total}
+            pageSize={limit}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setPage(1);
+              setLimit(newSize);
+            }}
+            itemType="tasks"
+          />
         )}
 
         <CreateTaskDialog
@@ -467,6 +500,10 @@ const TaskCard = ({
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [reassignConfirmation, setReassignConfirmation] = useState<{
+    newUserId: string;
+    newUserName: string;
+  } | null>(null);
   const { mutate } = useUpdateTaskStatus();
   const { mutate: deleteTask, isPending: isDeleting } = useDeleteTask();
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
@@ -573,38 +610,59 @@ const TaskCard = ({
                     />
                     <div className="h-px bg-border my-1" />
                     <div className="max-h-48 overflow-y-auto">
-                      {(users?.data ?? []).map(
-                        (user: { _id: string; name: string }) => (
-                          <button
-                            key={user._id}
-                            disabled={isUpdating}
-                            onClick={() => {
-                              if (isUpdating) return;
+                      {(users?.data ?? []).map((user: User) => (
+                        <button
+                          key={user._id || user.id}
+                          disabled={isUpdating}
+                          onClick={() => {
+                            if (isUpdating) return;
+
+                            const targetUserId = user._id || user.id;
+                            const currentAssigneeId = task.assigneeId;
+
+                            // Case 1: Already assigned to the same user
+                            if (currentAssigneeId === targetUserId) {
+                              toast.error(
+                                `This task is already assigned to ${user.name}.`,
+                              );
+                              return;
+                            }
+
+                            // Case 2: Assigned to a different user, prompt for confirmation using custom modal
+                            if (currentAssigneeId) {
+                              setReassignConfirmation({
+                                newUserId: targetUserId,
+                                newUserName: user.name,
+                              });
                               setIsMenuOpen(false);
                               setIsAssignOpen(false);
-                              setSelectedUserId(user._id);
-                              updateTask({
-                                id: task.id,
-                                data: {
-                                  assignedTo: user._id,
-                                },
-                              });
-                            }}
-                            className={`flex items-center justify-between w-full px-4 py-2 text-[12px] font-bold transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed
-                              ${selectedUserId === user._id ? "bg-brand/10 text-brand hover:bg-brand/15" : "text-foreground hover:bg-secondary"}`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="h-5.5 w-5.5 rounded-full bg-brand/15 border border-brand/20 flex items-center justify-center text-brand text-[9px] font-black shrink-0">
-                                {user.name ? user.name[0].toUpperCase() : "U"}
-                              </div>
-                              <span className="truncate">{user.name}</span>
+                              return;
+                            }
+
+                            setIsMenuOpen(false);
+                            setIsAssignOpen(false);
+                            setSelectedUserId(targetUserId);
+                            updateTask({
+                              id: task.id,
+                              data: {
+                                assignedTo: targetUserId,
+                              },
+                            });
+                          }}
+                          className={`flex items-center justify-between w-full px-4 py-2 text-[12px] font-bold transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed
+                              ${selectedUserId === (user._id || user.id) ? "bg-brand/10 text-brand hover:bg-brand/15" : "text-foreground hover:bg-secondary"}`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="h-5.5 w-5.5 rounded-full bg-brand/15 border border-brand/20 flex items-center justify-center text-brand text-[9px] font-black shrink-0">
+                              {user.name ? user.name[0].toUpperCase() : "U"}
                             </div>
-                            {selectedUserId === user._id && (
-                              <Check className="h-3.5 w-3.5 text-brand shrink-0" />
-                            )}
-                          </button>
-                        ),
-                      )}
+                            <span className="truncate">{user.name}</span>
+                          </div>
+                          {selectedUserId === (user._id || user.id) && (
+                            <Check className="h-3.5 w-3.5 text-brand shrink-0" />
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </>
                 ) : (
@@ -629,7 +687,9 @@ const TaskCard = ({
                         }}
                       />
                     )}
-                    {canEditOrDelete && <div className="h-px bg-border my-1.5" />}
+                    {canEditOrDelete && (
+                      <div className="h-px bg-border my-1.5" />
+                    )}
                     {task.status !== "done" && (
                       <MenuOption
                         icon={<ArrowRight className="h-4 w-4" />}
@@ -707,7 +767,8 @@ const TaskCard = ({
               title={`Checklist progress: ${task.subtasks.filter((s) => s.isCompleted).length}/${task.subtasks.length}`}
             >
               <CheckSquare className="h-3.5 w-3.5 text-brand" />
-              {task.subtasks.filter((s) => s.isCompleted).length}/{task.subtasks.length}
+              {task.subtasks.filter((s) => s.isCompleted).length}/
+              {task.subtasks.length}
             </div>
           )}
         </div>
@@ -816,6 +877,70 @@ const TaskCard = ({
                 ) : (
                   "Delete"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassignment Confirmation Dialog */}
+      {reassignConfirmation && !isOverlay && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-100 flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setReassignConfirmation(null);
+            }}
+          />
+          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200 z-10 flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-orange-500">
+              <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                <AlertTriangle className="h-5 w-5 animate-pulse" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">
+                Confirm Reassignment
+              </h3>
+            </div>
+
+            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+              This task is currently assigned to{" "}
+              <span className="font-extrabold text-foreground">
+                {task.assigneeName}
+              </span>
+              . Are you sure you want to reassign it to{" "}
+              <span className="font-extrabold text-brand">
+                {reassignConfirmation.newUserName}
+              </span>
+              ?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-border/40">
+              <button
+                type="button"
+                onClick={() => setReassignConfirmation(null)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-foreground border border-border bg-secondary/20 hover:bg-secondary/40 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateTask({
+                    id: task.id,
+                    data: {
+                      assignedTo: reassignConfirmation.newUserId,
+                    },
+                  });
+                  setSelectedUserId(reassignConfirmation.newUserId);
+                  setReassignConfirmation(null);
+                }}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 transition-all cursor-pointer"
+              >
+                Reassign
               </button>
             </div>
           </div>

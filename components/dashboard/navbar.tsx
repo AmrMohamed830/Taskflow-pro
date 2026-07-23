@@ -9,7 +9,7 @@ import {
   useNotifications,
   useMarkNotificationsRead,
   useDeleteNotification,
-} from "@/lib/hooks/useNotifications";
+} from "@/lib/hooks/notifications/useNotifications";
 import type { Notification as DbNotification } from "@/lib/types/notifications";
 
 const formatRelativeTime = (dateString: string) => {
@@ -31,7 +31,8 @@ const Navbar = () => {
   const { search, setSearch } = useFilterStore();
   const pathname = usePathname();
 
-  const showSearch = pathname === "/dashboard/kanban" || pathname === "/dashboard/users";
+  const showSearch =
+    pathname === "/dashboard/kanban" || pathname === "/dashboard/users";
 
   // Notifications State & Hooks
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -40,7 +41,9 @@ const Navbar = () => {
   const { mutate: deleteNotification } = useDeleteNotification();
 
   const notifications = notificationsData?.data ?? [];
-  const unreadCount = notifications.filter((n: DbNotification) => n.unread).length;
+  const unreadCount = notifications.filter(
+    (n: DbNotification) => n.unread,
+  ).length;
 
   const handleMarkAllRead = () => {
     markAllRead();
@@ -116,7 +119,9 @@ const Navbar = () => {
               />
               <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-border bg-card text-foreground shadow-2xl z-20 py-2 overflow-hidden animate-in fade-in slide-in-from-top-3 duration-200">
                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-                  <h4 className="text-sm font-extrabold text-foreground">Notifications</h4>
+                  <h4 className="text-sm font-extrabold text-foreground">
+                    Notifications
+                  </h4>
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllRead}
@@ -162,7 +167,9 @@ const Navbar = () => {
                     <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground text-center">
                       <Bell className="h-8 w-8 opacity-25 animate-bounce" />
                       <p className="text-xs font-extrabold">All caught up!</p>
-                      <p className="text-[10px] opacity-60">No new notifications</p>
+                      <p className="text-[10px] opacity-60">
+                        No new notifications
+                      </p>
                     </div>
                   )}
                 </div>

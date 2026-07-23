@@ -1,23 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateUserRole } from "../api/users";
+import { createUser } from "../../api/users";
+import { CreateUserData } from "../../types/users";
 import { toast } from "sonner";
 
-export const useUpdateUserRole = () => {
+export const useCreateUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, role }: { id: string; role: "admin" | "user" }) =>
-      updateUserRole(id, role),
+    mutationFn: (data: CreateUserData) => createUser(data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["users"],
       });
-      toast.success("User role updated successfully");
+      toast.success("User created successfully");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update user role");
+      toast.error(error.message || "Failed to create user");
     },
   });
 };
-

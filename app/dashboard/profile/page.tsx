@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/store/auth";
-import { useUpdateUser } from "@/lib/hooks/useUpdateUser";
-import { useChangePassword } from "@/lib/hooks/useChangePassword";
+import { useUpdateUser } from "@/lib/hooks/users/useUpdateUser";
+import { useChangePassword } from "@/lib/hooks/auth/useChangePassword";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -18,7 +18,6 @@ import {
   Lock,
   X,
 } from "lucide-react";
-
 
 // --- Sub-components ---
 
@@ -96,7 +95,7 @@ const ChangePasswordDialog = ({
           setConfirmPassword("");
           onClose();
         },
-      }
+      },
     );
   };
 
@@ -113,7 +112,9 @@ const ChangePasswordDialog = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-foreground">Change Password</h3>
+            <h3 className="text-xl font-bold text-foreground">
+              Change Password
+            </h3>
             <p className="text-sm text-muted-foreground mt-1">
               Update your account password.
             </p>
@@ -212,7 +213,7 @@ export default function ProfilePage() {
 
   // Local state persistence for other settings
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  
+
   const [notifications, setNotifications] = useState({
     email: true,
     reminders: true,
@@ -283,7 +284,7 @@ export default function ProfilePage() {
           }
           toast.success("Notification preferences updated");
         },
-      }
+      },
     );
   };
 
@@ -291,7 +292,9 @@ export default function ProfilePage() {
     setSecurity((prev) => {
       const updated = { ...prev, [key]: !prev[key] };
       localStorage.setItem("user-security", JSON.stringify(updated));
-      toast.success(`${key === "twoFactor" ? "Two-Factor Authentication" : "Security preferences"} updated`);
+      toast.success(
+        `${key === "twoFactor" ? "Two-Factor Authentication" : "Security preferences"} updated`,
+      );
       return updated;
     });
   };
@@ -328,7 +331,7 @@ export default function ProfilePage() {
             setUser(response.user);
           }
         },
-      }
+      },
     );
   };
 
@@ -363,13 +366,19 @@ export default function ProfilePage() {
                   alt={name || "User"}
                   className="w-full h-full object-cover"
                 />
+              ) : name ? (
+                name.charAt(0).toUpperCase()
               ) : (
-                name ? name.charAt(0).toUpperCase() : "U"
+                "U"
               )}
             </div>
             <div className="text-center">
-              <h3 className="font-bold text-foreground text-lg">{name || "User"}</h3>
-              <p className="text-xs text-muted-foreground">{user.role === "admin" ? "Administrator" : "Team Member"}</p>
+              <h3 className="font-bold text-foreground text-lg">
+                {name || "User"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {user.role === "admin" ? "Administrator" : "Team Member"}
+              </p>
               {user.department && (
                 <span className="inline-block mt-2 px-2.5 py-0.5 rounded-full bg-secondary text-[10px] font-bold text-muted-foreground">
                   {user.department}
@@ -452,9 +461,11 @@ export default function ProfilePage() {
           <div className="p-6 rounded-2xl border border-border bg-card shadow-sm flex flex-col gap-6">
             <div className="flex items-center gap-3 border-b border-border/50 pb-3">
               <Palette className="h-5 w-5 text-purple-500" />
-              <h3 className="font-bold text-foreground text-base">Appearance & Layout</h3>
+              <h3 className="font-bold text-foreground text-base">
+                Appearance & Layout
+              </h3>
             </div>
-            
+
             <div className="flex flex-col gap-5 divide-y divide-border/30">
               <div className="pt-0">
                 <ToggleSetting
@@ -479,14 +490,20 @@ export default function ProfilePage() {
           <div className="p-6 rounded-2xl border border-border bg-card shadow-sm flex flex-col gap-6">
             <div className="flex items-center gap-3 border-b border-border/50 pb-3">
               <Shield className="h-5 w-5 text-red-500" />
-              <h3 className="font-bold text-foreground text-base">Security & Protection</h3>
+              <h3 className="font-bold text-foreground text-base">
+                Security & Protection
+              </h3>
             </div>
 
             <div className="flex flex-col gap-5">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-foreground">Password Update</span>
-                  <span className="text-xs text-muted-foreground">Keep your login credentials secure</span>
+                  <span className="text-sm font-bold text-foreground">
+                    Password Update
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Keep your login credentials secure
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -512,7 +529,9 @@ export default function ProfilePage() {
           <div className="p-6 rounded-2xl border border-border bg-card shadow-sm flex flex-col gap-6">
             <div className="flex items-center gap-3 border-b border-border/50 pb-3">
               <Bell className="h-5 w-5 text-amber-500" />
-              <h3 className="font-bold text-foreground text-base">Notifications Preferences</h3>
+              <h3 className="font-bold text-foreground text-base">
+                Notifications Preferences
+              </h3>
             </div>
 
             <div className="flex flex-col gap-5 divide-y divide-border/30">

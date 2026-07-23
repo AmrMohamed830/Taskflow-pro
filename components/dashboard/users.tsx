@@ -20,17 +20,29 @@ import {
   EyeOff,
   Search,
 } from "lucide-react";
-import { useUsers } from "@/lib/hooks/useUsers";
+import { useUsers } from "@/lib/hooks/users/useUsers";
 import type { User } from "@/lib/types/users";
-import { useDeleteUser } from "@/lib/hooks/useDeleteUser";
-import { useCreateUser } from "@/lib/hooks/useCreateUser";
-import { useUpdateUser } from "@/lib/hooks/useUpdateUser";
+import { useDeleteUser } from "@/lib/hooks/users/useDeleteUser";
+import { useCreateUser } from "@/lib/hooks/users/useCreateUser";
+import { useUpdateUser } from "@/lib/hooks/users/useUpdateUser";
 import { useFilterStore } from "@/lib/store/filters";
-import { useDebounce } from "@/lib/hooks/useDebounce";
+import { useDebounce } from "@/lib/hooks/common/useDebounce";
+import { Pagination } from "@/components/ui/pagination";
+import { useAuth } from "@/lib/store/auth";
+import { useRouter } from "next/navigation";
 
 // --- Main Component ---
 
 export const Users = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -45,7 +57,8 @@ export const Users = () => {
   const { search, setSearch, clearSearch } = useFilterStore();
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
   const [page, setPage] = useState(1);
-  const limit = 5;
+  const limit = 30;
+  const [displayLimit, setDisplayLimit] = useState(10);
 
   useEffect(() => {
     clearSearch();
@@ -69,39 +82,44 @@ export const Users = () => {
   // Hooks
   const debouncedSearch = useDebounce(search, 300);
   const { data, isLoading, error } = useUsers({
-    page,
+    page: 1,
     limit,
     search: debouncedSearch || undefined,
     role: roleFilter,
   });
-  const users: User[] = useMemo(() => data?.data ?? [], [data]);
+  const allUsers: User[] = useMemo(() => data?.data ?? [], [data]);
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
   const { mutate: createUser, isPending: isCreating } = useCreateUser();
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
 
-  // Filtered Users
+  // Filtered Users (Paginated Slice)
   const filteredUsers = useMemo(() => {
-    return users;
-  }, [users]);
+    const startIndex = (page - 1) * displayLimit;
+    return allUsers.slice(startIndex, startIndex + displayLimit);
+  }, [allUsers, page, displayLimit]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(allUsers.length / displayLimit);
+  }, [allUsers, displayLimit]);
 
   const stats = [
     {
       title: "Total Users",
-      value: users.length,
+      value: allUsers.length,
       icon: <UsersIcon className="h-5 w-5" />,
       color: "text-brand",
       bg: "bg-brand/10 border-brand/20",
     },
     {
       title: "Admins",
-      value: users.filter((u: User) => u.role === "admin").length,
+      value: allUsers.filter((u: User) => u.role === "admin").length,
       icon: <ShieldCheck className="h-5 w-5" />,
       color: "text-orange-500",
       bg: "bg-orange-500/10 border-orange-500/20",
     },
     {
       title: "Team Members",
-      value: users.filter((u: User) => u.role === "user").length,
+      value: allUsers.filter((u: User) => u.role === "user").length,
       icon: <UserCircle className="h-5 w-5" />,
       color: "text-blue-500",
       bg: "bg-blue-500/10 border-blue-500/20",
@@ -223,7 +241,7 @@ export const Users = () => {
               All Workspace Users
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Showing {filteredUsers.length} of {users.length} registered
+              Showing {filteredUsers.length} of {allUsers.length} registered
               members
             </p>
           </div>
@@ -403,28 +421,20 @@ export const Users = () => {
         </div>
 
         {/* Pagination Controls */}
-        {data?.pagination && data.pagination.pages > 1 && (
-          <div className="flex items-center justify-between border-t border-border/50 pt-4 mt-4">
-            <span className="text-xs text-muted-foreground font-semibold">
-              Page {page} of {data.pagination.pages} ({data.pagination.total} total members)
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                disabled={page === 1}
-                className="px-3.5 py-1.5 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(p + 1, data.pagination.pages))}
-                disabled={page === data.pagination.pages}
-                className="px-3.5 py-1.5 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+        {allUsers.length > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={allUsers.length}
+            pageSize={displayLimit}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setPage(1);
+              setDisplayLimit(newSize);
+            }}
+            pageSizeOptions={[5, 10, 20, 30]}
+            itemType="members"
+          />
         )}
       </div>
 

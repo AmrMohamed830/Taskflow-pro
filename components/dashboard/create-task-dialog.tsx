@@ -8,11 +8,11 @@ import {
   createTaskSchema,
   type CreateTaskFormData,
 } from "@/lib/validations/task";
-import { useCreateTask } from "@/lib/hooks/useCreateTask";
-import { useUsers } from "@/lib/hooks/useUsers";
+import { useCreateTask } from "@/lib/hooks/tasks/useCreateTask";
+import { useUsers } from "@/lib/hooks/users/useUsers";
 import type { User } from "@/lib/types/users";
 import type { Task } from "@/lib/types/tasks";
-import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
+import { useUpdateTask } from "@/lib/hooks/tasks/useUpdateTask";
 import { useAuth } from "@/lib/store/auth";
 
 interface CreateTaskDialogProps {
@@ -206,7 +206,7 @@ export const CreateTaskDialog = ({
     setValue,
     watch,
     reset,
-    formState: { errors: formErrors },
+    formState: { errors: formErrors, isDirty },
   } = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
@@ -301,7 +301,7 @@ export const CreateTaskDialog = ({
         ? prev.filter((t) => t !== tag)
         : [...prev, tag];
 
-      setValue("tags", updatedTags);
+      setValue("tags", updatedTags, { shouldDirty: true });
 
       return updatedTags;
     });
@@ -457,7 +457,10 @@ export const CreateTaskDialog = ({
                 <CustomSelect
                   value={assignedToValue}
                   onChange={(val) =>
-                    setValue("assignedTo", val, { shouldValidate: true })
+                    setValue("assignedTo", val, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
                   }
                   options={assignedToOptions}
                   placeholder="Select a user"
@@ -511,8 +514,8 @@ export const CreateTaskDialog = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+              disabled={isSubmitting || (!!task && !isDirty)}
+              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand text-black shadow-lg shadow-brand/10 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 cursor-pointer"
             >
               {isSubmitting
                 ? task

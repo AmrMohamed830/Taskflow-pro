@@ -23,9 +23,9 @@ import {
   Layers,
 } from "lucide-react";
 
-import { useDashboardStats } from "@/lib/hooks/useDashboardStats";
-import { useTasks } from "@/lib/hooks/useTasks";
-import { useUsers } from "@/lib/hooks/useUsers";
+import { useDashboardStats } from "@/lib/hooks/dashboard/useDashboardStats";
+import { useTasks } from "@/lib/hooks/tasks/useTasks";
+import { useUsers } from "@/lib/hooks/users/useUsers";
 import { useAuth } from "@/lib/store/auth";
 import { CreateTaskDialog } from "@/components/dashboard/create-task-dialog";
 import { TaskDetailsDialog } from "@/components/dashboard/TaskDetailsDialog";
@@ -69,7 +69,9 @@ export default function DashboardPage() {
     const userList = (usersResponse?.data || []) as User[];
     const totalUsers = usersResponse?.total || userList.length || 0;
     const adminCount = userList.filter((u: User) => u.role === "admin").length;
-    const regularUserCount = userList.filter((u: User) => u.role === "user" || !u.role).length;
+    const regularUserCount = userList.filter(
+      (u: User) => u.role === "user" || !u.role,
+    ).length;
     return {
       totalUsers,
       adminCount: adminCount || 1,
@@ -81,7 +83,10 @@ export default function DashboardPage() {
   const recentTasks = useMemo(() => {
     const tasksList = tasksResponse?.tasks || [];
     return [...tasksList]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 5);
   }, [tasksResponse]);
 
@@ -90,7 +95,9 @@ export default function DashboardPage() {
     const tasksList = tasksResponse?.tasks || [];
     return [...tasksList]
       .filter((t) => t.dueDate && t.status !== "done")
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      )
       .slice(0, 5);
   }, [tasksResponse]);
 
@@ -116,7 +123,8 @@ export default function DashboardPage() {
           <div>
             <h3 className="text-lg font-bold">Failed to load dashboard data</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              There was an issue connecting to the server. Please check your internet connection or backend service.
+              There was an issue connecting to the server. Please check your
+              internet connection or backend service.
             </p>
           </div>
           <button
@@ -154,7 +162,8 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Here is an up-to-date overview of team productivity, deadlines, and project progress.
+            Here is an up-to-date overview of team productivity, deadlines, and
+            project progress.
           </p>
         </div>
 
@@ -164,7 +173,9 @@ export default function DashboardPage() {
             title="Refresh Data"
             className="p-2.5 rounded-xl border border-border bg-card hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all cursor-pointer"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
           </button>
           <button
             onClick={() => setIsCreateTaskOpen(true)}
@@ -188,10 +199,12 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-foreground text-base">
-                    {overdueCount} {overdueCount === 1 ? "task is" : "tasks are"} overdue!
+                    {overdueCount}{" "}
+                    {overdueCount === 1 ? "task is" : "tasks are"} overdue!
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Some tasks have passed their deadline. Please review and update their status.
+                    Some tasks have passed their deadline. Please review and
+                    update their status.
                   </p>
                 </div>
               </div>
@@ -234,16 +247,20 @@ export default function DashboardPage() {
         <div className="p-6 rounded-xl border border-border bg-card flex items-center justify-between gap-6 shadow-sm hover:border-border/80 transition-all">
           <div className="flex flex-col justify-between h-full flex-1 gap-2">
             <div>
-              <span className="text-sm font-semibold text-muted-foreground">Completion Rate</span>
+              <span className="text-sm font-semibold text-muted-foreground">
+                Completion Rate
+              </span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-extrabold text-card-foreground">{completionRate}%</span>
+                <span className="text-3xl font-extrabold text-card-foreground">
+                  {completionRate}%
+                </span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {doneCount} of {totalTasks} tasks completed
             </p>
           </div>
-          
+
           <div className="relative flex items-center justify-center shrink-0">
             <svg className="w-16 h-16 transform -rotate-90">
               <circle
@@ -262,7 +279,9 @@ export default function DashboardPage() {
                 strokeWidth="5.5"
                 fill="transparent"
                 strokeDasharray={2 * Math.PI * 26}
-                strokeDashoffset={2 * Math.PI * 26 * (1 - (completionRate || 0) / 100)}
+                strokeDashoffset={
+                  2 * Math.PI * 26 * (1 - (completionRate || 0) / 100)
+                }
                 strokeLinecap="round"
               />
             </svg>
@@ -276,7 +295,9 @@ export default function DashboardPage() {
         <div className="md:col-span-2 lg:col-span-2 p-6 rounded-xl border border-border bg-card shadow-sm hover:border-border/80 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-muted-foreground">Team Members</div>
+              <div className="text-sm font-semibold text-muted-foreground">
+                Team Members
+              </div>
               <div className="text-3xl font-extrabold text-card-foreground mt-2">
                 {teamMetrics.totalUsers}
               </div>
@@ -291,14 +312,18 @@ export default function DashboardPage() {
               {teamMetrics.adminCount} Admin
             </span>
             <span>•</span>
-            <span className="font-medium text-foreground">{teamMetrics.regularUserCount} Team Users</span>
+            <span className="font-medium text-foreground">
+              {teamMetrics.regularUserCount} Team Users
+            </span>
           </div>
         </div>
 
         <div className="md:col-span-2 lg:col-span-2 p-6 rounded-xl border border-border bg-card shadow-sm hover:border-border/80 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-muted-foreground">Overdue Attention</div>
+              <div className="text-sm font-semibold text-muted-foreground">
+                Overdue Attention
+              </div>
               <div className="text-3xl font-extrabold text-red-500 mt-2">
                 {overdueCount}
               </div>
@@ -310,11 +335,13 @@ export default function DashboardPage() {
           <div className="text-xs text-muted-foreground pt-4 border-t border-border/50 mt-4">
             {overdueCount > 0 ? (
               <span className="text-red-500 font-semibold flex items-center gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" /> Action required to update status
+                <AlertTriangle className="h-3.5 w-3.5" /> Action required to
+                update status
               </span>
             ) : (
               <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" /> All tasks are on schedule!
+                <CheckCircle2 className="h-3.5 w-3.5" /> All tasks are on
+                schedule!
               </span>
             )}
           </div>
@@ -390,8 +417,12 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col items-center justify-center p-8 text-center rounded-xl bg-secondary/20 border border-dashed border-border/60">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2 opacity-80" />
-                <p className="text-sm font-semibold text-foreground">No upcoming pending deadlines</p>
-                <p className="text-xs text-muted-foreground mt-0.5">All pending tasks have no due date or are done.</p>
+                <p className="text-sm font-semibold text-foreground">
+                  No upcoming pending deadlines
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  All pending tasks have no due date or are done.
+                </p>
               </div>
             )}
           </div>
@@ -430,9 +461,12 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col items-center justify-center p-10 text-center rounded-xl bg-secondary/10 border border-dashed border-border">
                 <ListTodo className="h-10 w-10 text-muted-foreground mb-3" />
-                <h4 className="text-base font-bold text-foreground">No tasks found</h4>
+                <h4 className="text-base font-bold text-foreground">
+                  No tasks found
+                </h4>
                 <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                  Start by creating your first task to see updates and activity here.
+                  Start by creating your first task to see updates and activity
+                  here.
                 </p>
                 <button
                   onClick={() => setIsCreateTaskOpen(true)}
@@ -472,14 +506,24 @@ type StatCardProps = {
   iconBg: string;
 };
 
-const StatCard = ({ title, value, description, icon, iconBg }: StatCardProps) => (
+const StatCard = ({
+  title,
+  value,
+  description,
+  icon,
+  iconBg,
+}: StatCardProps) => (
   <div className="p-6 rounded-xl border border-border bg-card flex flex-col justify-between gap-4 shadow-sm hover:border-border/80 transition-all">
     <div className="flex items-center justify-between">
-      <span className="text-sm font-semibold text-muted-foreground">{title}</span>
+      <span className="text-sm font-semibold text-muted-foreground">
+        {title}
+      </span>
       <div className={`p-2 rounded-lg ${iconBg}`}>{icon}</div>
     </div>
     <div>
-      <div className="text-3xl font-extrabold text-card-foreground">{value}</div>
+      <div className="text-3xl font-extrabold text-card-foreground">
+        {value}
+      </div>
       <p className="text-xs text-muted-foreground mt-1">{description}</p>
     </div>
   </div>
@@ -491,7 +535,11 @@ type QuickActionButtonProps = {
   onClick: () => void;
 };
 
-const QuickActionButton = ({ icon, label, onClick }: QuickActionButtonProps) => (
+const QuickActionButton = ({
+  icon,
+  label,
+  onClick,
+}: QuickActionButtonProps) => (
   <button
     onClick={onClick}
     className="flex items-center justify-between w-full p-3.5 rounded-xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-sm font-semibold text-foreground group cursor-pointer"
@@ -531,7 +579,13 @@ const checkIsOverdue = (dateStr?: string) => {
   return due < now;
 };
 
-const DeadlineItem = ({ task, onClick }: { task: Task; onClick: () => void }) => {
+const DeadlineItem = ({
+  task,
+  onClick,
+}: {
+  task: Task;
+  onClick: () => void;
+}) => {
   const isOverdue = checkIsOverdue(task.dueDate);
   const assigneeName = task.assignedTo?.name || "Unassigned";
 
@@ -573,28 +627,52 @@ const DeadlineItem = ({ task, onClick }: { task: Task; onClick: () => void }) =>
   );
 };
 
-const RecentTaskRow = ({ task, onClick }: { task: Task; onClick: () => void }) => {
+const RecentTaskRow = ({
+  task,
+  onClick,
+}: {
+  task: Task;
+  onClick: () => void;
+}) => {
   const assigneeName = task.assignedTo?.name || "Unassigned";
 
   const getStatusBadge = (status: TaskStatus) => {
     switch (status) {
       case "done":
-        return { label: "Done", className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
+        return {
+          label: "Done",
+          className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+        };
       case "doing":
-        return { label: "In Progress", className: "bg-blue-500/10 text-blue-500 border-blue-500/20" };
+        return {
+          label: "In Progress",
+          className: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+        };
       default:
-        return { label: "To Do", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" };
+        return {
+          label: "To Do",
+          className: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+        };
     }
   };
 
   const getPriorityBadge = (priority: TaskPriority) => {
     switch (priority) {
       case "high":
-        return { label: "High", className: "bg-red-500/10 text-red-500 border-red-500/20" };
+        return {
+          label: "High",
+          className: "bg-red-500/10 text-red-500 border-red-500/20",
+        };
       case "medium":
-        return { label: "Medium", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" };
+        return {
+          label: "Medium",
+          className: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+        };
       default:
-        return { label: "Low", className: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
+        return {
+          label: "Low",
+          className: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+        };
     }
   };
 
@@ -612,8 +690,8 @@ const RecentTaskRow = ({ task, onClick }: { task: Task; onClick: () => void }) =
             task.status === "done"
               ? "bg-emerald-500"
               : task.status === "doing"
-              ? "bg-blue-500"
-              : "bg-amber-500"
+                ? "bg-blue-500"
+                : "bg-amber-500"
           }`}
         />
         <div className="min-w-0">
@@ -672,7 +750,10 @@ const DashboardSkeleton = () => (
 
     <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-32 bg-card rounded-xl border border-border p-6 space-y-4">
+        <div
+          key={i}
+          className="h-32 bg-card rounded-xl border border-border p-6 space-y-4"
+        >
           <div className="flex justify-between">
             <div className="h-4 w-20 bg-muted rounded" />
             <div className="h-8 w-8 bg-muted rounded-lg" />

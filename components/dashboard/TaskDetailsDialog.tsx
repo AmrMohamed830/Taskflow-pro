@@ -13,13 +13,13 @@ import {
   ListTodo,
   Trash2,
 } from "lucide-react";
-import { useTask } from "@/lib/hooks/useTask";
+import { useTask } from "@/lib/hooks/tasks/useTask";
 import { useAuth } from "@/lib/store/auth";
-import { useTaskComments } from "@/lib/hooks/useTaskComments";
+import { useTaskComments } from "@/lib/hooks/tasks/useTaskComments";
 import type { TaskComment, Subtask } from "@/lib/types/tasks";
-import { useAddComment } from "@/lib/hooks/useAddComment";
-import { useDeleteComment } from "@/lib/hooks/useDeleteComment";
-import { useUpdateTask } from "@/lib/hooks/useUpdateTask";
+import { useAddComment } from "@/lib/hooks/tasks/useAddComment";
+import { useDeleteComment } from "@/lib/hooks/tasks/useDeleteComment";
+import { useUpdateTask } from "@/lib/hooks/tasks/useUpdateTask";
 
 interface TaskDetailsDialogProps {
   isOpen: boolean;
@@ -42,7 +42,9 @@ export const TaskDetailsDialog = ({
     useTaskComments(taskId ?? "");
   const [commentText, setCommentText] = useState("");
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
-  const [prevTaskId, setPrevTaskId] = useState<string | null | undefined>(taskId);
+  const [prevTaskId, setPrevTaskId] = useState<string | null | undefined>(
+    taskId,
+  );
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
 
   if (task?._id !== prevTaskId) {
@@ -55,7 +57,7 @@ export const TaskDetailsDialog = ({
     if (!newSubtaskTitle.trim() || !task) return;
 
     const tempId = Array.from({ length: 24 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
+      Math.floor(Math.random() * 16).toString(16),
     ).join("");
 
     const newSubtask = {
@@ -80,7 +82,7 @@ export const TaskDetailsDialog = ({
     if (!task) return;
 
     const updated = subtasks.map((sub) =>
-      sub._id === subtaskId ? { ...sub, isCompleted } : sub
+      sub._id === subtaskId ? { ...sub, isCompleted } : sub,
     );
     setSubtasks(updated); // Update local state instantly!
 
@@ -108,7 +110,6 @@ export const TaskDetailsDialog = ({
 
   const totalSubtasks = subtasks.length;
   const completedCount = subtasks.filter((sub) => sub.isCompleted).length;
- 
 
   if (!isOpen) return null;
 
@@ -330,7 +331,8 @@ export const TaskDetailsDialog = ({
                   </div>
                   {totalSubtasks > 0 && (
                     <div className="text-xs text-zinc-400">
-                      {Math.round((completedCount / totalSubtasks) * 100)}% complete
+                      {Math.round((completedCount / totalSubtasks) * 100)}%
+                      complete
                     </div>
                   )}
                 </div>
@@ -340,7 +342,9 @@ export const TaskDetailsDialog = ({
                   <div className="w-full bg-[#181d28] h-1.5 rounded-full overflow-hidden">
                     <div
                       className="bg-[#00c985] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${(completedCount / totalSubtasks) * 100}%` }}
+                      style={{
+                        width: `${(completedCount / totalSubtasks) * 100}%`,
+                      }}
                     />
                   </div>
                 )}
@@ -357,12 +361,16 @@ export const TaskDetailsDialog = ({
                           <input
                             type="checkbox"
                             checked={subtask.isCompleted}
-                            onChange={(e) => handleToggleSubtask(subtask._id, e.target.checked)}
+                            onChange={(e) =>
+                              handleToggleSubtask(subtask._id, e.target.checked)
+                            }
                             className="w-4 h-4 border border-[#2d3445] rounded bg-[#11141a] text-[#00c985] focus:ring-0 focus:ring-offset-0 accent-[#00c985] cursor-pointer"
                           />
                           <span
                             className={`text-xs truncate ${
-                              subtask.isCompleted ? "text-zinc-500 line-through" : "text-zinc-200 font-medium"
+                              subtask.isCompleted
+                                ? "text-zinc-500 line-through"
+                                : "text-zinc-200 font-medium"
                             }`}
                           >
                             {subtask.title}
@@ -379,7 +387,9 @@ export const TaskDetailsDialog = ({
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-zinc-500 italic py-1">No checklist items yet.</p>
+                    <p className="text-xs text-zinc-500 italic py-1">
+                      No checklist items yet.
+                    </p>
                   )}
                 </div>
 
@@ -394,7 +404,9 @@ export const TaskDetailsDialog = ({
                   />
                   <button
                     type="submit"
-                    disabled={!newSubtaskTitle.trim() || updateTaskMutation.isPending}
+                    disabled={
+                      !newSubtaskTitle.trim() || updateTaskMutation.isPending
+                    }
                     className="px-3.5 py-2 bg-[#00c985] text-black font-bold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer whitespace-nowrap"
                   >
                     Add
@@ -496,7 +508,9 @@ export const TaskDetailsDialog = ({
                     />
                     <button
                       type="submit"
-                      disabled={!commentText.trim() || addCommentMutation.isPending}
+                      disabled={
+                        !commentText.trim() || addCommentMutation.isPending
+                      }
                       className="flex items-center gap-2 px-4 py-2 bg-[#00c985] text-black font-bold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       {addCommentMutation.isPending ? (

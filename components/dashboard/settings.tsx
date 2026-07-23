@@ -3,14 +3,25 @@
 import React, { useEffect, useState } from "react";
 import { User, Bell, Palette, Shield, X } from "lucide-react";
 import { useAuth } from "@/lib/store/auth";
-import { useUser } from "@/lib/hooks/useUser";
-import { useUpdateUser } from "@/lib/hooks/useUpdateUser";
-import { useChangePassword } from "@/lib/hooks/useChangePassword";
+import { useUser } from "@/lib/hooks/auth/useUser";
+import { useUpdateUser } from "@/lib/hooks/users/useUpdateUser";
+import { useChangePassword } from "@/lib/hooks/auth/useChangePassword";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 const AVATAR_OPTIONS = [
-  "💻", "🎨", "🚀", "🦊", "🦁", "🐼", "🦄", "🎯", "🤖", "🍕", "🎸", "⛰️"
+  "💻",
+  "🎨",
+  "🚀",
+  "🦊",
+  "🦁",
+  "🐼",
+  "🦄",
+  "🎯",
+  "🤖",
+  "🍕",
+  "🎸",
+  "⛰️",
 ];
 
 // --- Sub-components ---
@@ -111,7 +122,7 @@ const ChangePasswordDialog = ({
           setConfirmPassword("");
           onClose();
         },
-      }
+      },
     );
   };
 
@@ -128,7 +139,9 @@ const ChangePasswordDialog = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-foreground">Change Password</h3>
+            <h3 className="text-xl font-bold text-foreground">
+              Change Password
+            </h3>
             <p className="text-sm text-muted-foreground mt-1">
               Update your account password.
             </p>
@@ -215,7 +228,7 @@ export const Settings = () => {
   const { data: userDataResponse } = useUser(userId);
   const { mutate: updateUser, isPending } = useUpdateUser();
   const currentUser = userDataResponse?.user || user;
-  
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "user">("user");
@@ -351,7 +364,9 @@ export const Settings = () => {
     setSecurity((prev) => {
       const updated = { ...prev, [key]: !prev[key] };
       localStorage.setItem("user-security", JSON.stringify(updated));
-      toast.success(`${key === "twoFactor" ? "Two-Factor Authentication" : "Security preferences"} updated`);
+      toast.success(
+        `${key === "twoFactor" ? "Two-Factor Authentication" : "Security preferences"} updated`,
+      );
       return updated;
     });
   };
@@ -401,9 +416,11 @@ export const Settings = () => {
             <div className="h-16 w-16 rounded-full bg-brand/10 border-2 border-brand/20 flex items-center justify-center text-3xl shadow-lg shadow-brand/5 overflow-hidden select-none">
               {avatar || "💻"}
             </div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Preview</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Preview
+            </span>
           </div>
-          
+
           <div className="flex-1">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
               Choose Avatar Icon
@@ -415,9 +432,11 @@ export const Settings = () => {
                   type="button"
                   onClick={() => setAvatar(av)}
                   className={`h-8 w-8 text-sm rounded-lg flex items-center justify-center transition-all cursor-pointer select-none
-                    ${avatar === av 
-                      ? "bg-brand text-black scale-105 shadow-sm shadow-brand/15" 
-                      : "bg-secondary/40 text-foreground hover:bg-secondary/70 hover:scale-105"}`}
+                    ${
+                      avatar === av
+                        ? "bg-brand text-black scale-105 shadow-sm shadow-brand/15"
+                        : "bg-secondary/40 text-foreground hover:bg-secondary/70 hover:scale-105"
+                    }`}
                 >
                   {av}
                 </button>

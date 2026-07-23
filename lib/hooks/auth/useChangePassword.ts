@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { changePassword } from "../api/auth";
-import type { ChangePasswordFormData } from "../types/auth";
+import { changePassword } from "../../api/auth";
+import type { ChangePasswordFormData } from "../../types/auth";
 import { toast } from "sonner";
 
 export const useChangePassword = () => {

@@ -56,7 +56,7 @@ const Navbar = () => {
     };
 
     const isLoggedIn = !!user;
-    const userAvatar = session?.user?.image || user?.avatar || user?.image;
+    const userAvatar = session?.user?.image || user?.avatar;
 
     return (
         <nav className="border-b relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
